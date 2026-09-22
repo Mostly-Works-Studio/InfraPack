@@ -259,12 +259,14 @@ it. `VERSION` is the single source of truth for both.
 ### Releasing
 
 ```bash
-scripts/release.sh 0.2.0        # bumps VERSION, commits, tags v0.2.0
-git push && git push --tags
+scripts/release.sh 0.2.0        # bumps VERSION and commits
+git push
 ```
 
-The tag triggers `.github/workflows/release.yml`: a multi-arch console image
-is pushed to GHCR, a GitHub release is created, and the Homebrew formula in
-`Mostly-Works-Studio/homebrew-tap` is updated (needs a `TAP_GITHUB_TOKEN`
-repository secret with write access to the tap). CI runs the smoke test on
-every PR and boots the whole catalog on `master` and weekly.
+One workflow does the rest. Every push to `master` runs lint, the smoke test
+and the full catalog boot; when all three are green and `VERSION` is not yet
+tagged, the same run tags it, pushes the multi-arch console image to GHCR,
+creates the GitHub release and updates the formula in
+`Mostly-Works-Studio/homebrew-tap` (needs a `TAP_GITHUB_TOKEN` repository
+secret with write access to the tap). A push whose version is already
+released stops after CI. Pull requests run lint and smoke only.

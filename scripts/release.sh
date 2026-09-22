@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Cut a release: bump VERSION, tag, and (once pushed) let GitHub Actions build
-# the console image and update the Homebrew tap.
+# Cut a release: bump VERSION and commit. Pushing that commit runs CI, and if
+# lint, smoke and the full catalog boot are green, the same workflow tags
+# vX.Y.Z, builds the console image, publishes the GitHub release and updates
+# the Homebrew tap. No manual tagging.
 #
-#   scripts/release.sh 0.2.0            # bump, commit, tag v0.2.0
-#   git push && git push --tags         # triggers .github/workflows/release.yml
+#   scripts/release.sh 0.2.0            # bump + commit
+#   git push                            # CI → release
 #
 #   scripts/release.sh formula 0.2.0    # print the tap formula for a tag that
 #                                       # already exists on GitHub (sha256 filled in)
@@ -29,11 +31,10 @@ cd "$HERE"
 [[ -z "$(git status --porcelain)" ]] || { echo "working tree is not clean" >&2; exit 1; }
 bash -n bin/infrapack
 python3 -m py_compile console/*.py
-git rev-parse -q --verify "refs/tags/v$v" >/dev/null && { echo "tag v$v already exists" >&2; exit 1; }
-if [[ "$(tr -d '[:space:]' < VERSION)" != "$v" ]]; then
-  printf '%s\n' "$v" > VERSION
-  git add VERSION
-  git commit -q -m "release v$v"
-fi
-git tag -a "v$v" -m "InfraPack v$v"
-echo "tagged v$v — now: git push && git push --tags"
+git rev-parse -q --verify "refs/tags/v$v" >/dev/null && { echo "v$v is already released" >&2; exit 1; }
+git ls-remote --exit-code --tags origin "refs/tags/v$v" >/dev/null 2>&1 && { echo "v$v is already released (remote tag)" >&2; exit 1; }
+[[ "$(tr -d '[:space:]' < VERSION)" != "$v" ]] || { echo "VERSION is already $v and not released — just git push" >&2; exit 0; }
+printf '%s\n' "$v" > VERSION
+git add VERSION
+git commit -q -m "release v$v"
+echo "VERSION → $v committed. Now: git push   (CI runs, then releases v$v if green)"
