@@ -69,7 +69,7 @@ jobs:
           infrapack down all
 
   catalog:
-    # every catalog entry boots to healthy. Slow (~25 min), so only on main and weekly.
+    # every catalog entry boots to healthy. Slow (~25 min), so only on master and weekly.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     needs: lint
