@@ -143,7 +143,17 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     // ---------------------------------------------------------- actions --
-    @objc private func openConsole() { NSWorkspace.shared.open(consoleURL) }
+    @objc private func openConsole() {
+        // prefer the InfraPack desktop app (the console in its own window) when installed
+        let app = NSHomeDirectory() + "/Applications/InfraPack.app"
+        if FileManager.default.fileExists(atPath: app + "/Contents/MacOS/InfraPack"),
+           let plist = NSDictionary(contentsOfFile: app + "/Contents/Info.plist"),
+           (plist["CFBundleIdentifier"] as? String)?.hasPrefix("studio.mostlyworks.infrapack") == true {
+            NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: app), configuration: NSWorkspace.OpenConfiguration()) { _, _ in }
+            return
+        }
+        NSWorkspace.shared.open(consoleURL)
+    }
     @objc private func openLink(_ sender: NSMenuItem) { if let url = sender.representedObject as? URL { NSWorkspace.shared.open(url) } }
     @objc private func quit() { NSApp.terminate(nil) }
 

@@ -1035,11 +1035,20 @@ cmd_app() {
   <key>CFBundleExecutable</key><string>$APP_NAME</string>
   <key>CFBundleIconFile</key><string>$APP_NAME</string>
   <key>LSMinimumSystemVersion</key><string>12.0</string>
-  <key>LSUIElement</key><true/>
+  <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 EOF
-          # the launcher reads the current port from the workspace, starts the console if needed, opens the browser
-          cat > "$app/Contents/MacOS/$APP_NAME" <<EOF
+          if command -v swiftc >/dev/null; then
+            # a native window with the console inside (WKWebView): no browser tabs
+            info "compiling the InfraPack app (about half a minute)"
+            if ! swiftc -O -o "$app/Contents/MacOS/$APP_NAME" "$INFRAPACK_APP/assets/app/InfraPackApp.swift" -framework Cocoa -framework WebKit 2>"$INFRAPACK_HOME/app-build.log"; then
+              warn "compile failed (see $INFRAPACK_HOME/app-build.log) — falling back to a browser launcher"
+              rm -f "$app/Contents/MacOS/$APP_NAME"
+            fi
+          fi
+          if [[ ! -x "$app/Contents/MacOS/$APP_NAME" ]]; then
+            # the launcher reads the current port from the workspace, starts the console if needed, opens the browser
+            cat > "$app/Contents/MacOS/$APP_NAME" <<EOF
 #!/bin/bash
 H="\${INFRAPACK_HOME:-\$HOME/.infrapack}"
 port="\$(grep -E '^CONSOLE_PORT=' "\$H/.env" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '"')"
@@ -1051,17 +1060,28 @@ if ! curl -fsS -m 2 "\$url/healthz" >/dev/null 2>&1; then
 fi
 exec open "\$url"
 EOF
+          fi
           chmod +x "$app/Contents/MacOS/$APP_NAME"
           if [[ -f "$INFRAPACK_APP/assets/icon.png" ]]; then
             sips -s format icns "$INFRAPACK_APP/assets/icon.png" --out "$app/Contents/Resources/$APP_NAME.icns" >/dev/null 2>&1 \
               || warn "could not convert the icon; the app works without it"
           fi
+          if [[ -d "$final" ]] && ! grep -q 'studio.mostlyworks.infrapack' "$final/Contents/Info.plist" 2>/dev/null; then
+            rm -rf "$app"; die "$final exists and is not InfraPack's (a browser web app?) — remove or rename it first"
+          fi
+          codesign --force --sign - "$app" >/dev/null 2>&1 || true
+          pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+          pkill -f -- "--bundlepath $final" >/dev/null 2>&1 || true   # a Safari web app still running from this path
           rm -rf "$final"; mkdir -p "$(dirname "$final")"
           mv "$app" "$final" || die "could not place $final"
           app="$final"
           touch "$app"    # nudge Finder / Launch Services to pick up the icon
           ok "$app installed — find \"$APP_NAME\" in Spotlight or Launchpad, drag it to the Dock"
-          printf '   it opens %s in your default browser (Arc, Chrome, Safari…)\n' "$(console_url)" ;;
+          if [[ -f "$INFRAPACK_HOME/app-build.log" && ! -s "$INFRAPACK_HOME/app-build.log" ]] || command -v swiftc >/dev/null; then
+            printf '   the console opens in its own window (tech UIs open in your browser)\n'
+          else
+            printf '   it opens %s in your default browser\n' "$(console_url)"
+          fi ;;
         uninstall) rm -rf "$app"; printf 'no\n' > "$INFRAPACK_HOME/.app-installed"; ok "$app removed" ;;
         *) die "usage: infrapack app [install|uninstall]" ;;
       esac ;;
