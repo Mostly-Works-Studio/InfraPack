@@ -815,6 +815,7 @@ cmd_add() {
   fi
   if [[ "$out" == *'"ok": true'* ]]; then
     finish_install "$name" "$start"
+    printf '%sThink others would use %s too? "infrapack contribute %s" packages it for a catalog PR.%s\n' "$DIM" "$name" "$name" "$N"
   elif [[ "$out" == *'"ok": false'* ]]; then
     die "$(printf '%s' "$out" | sed -n 's/.*"error": "\(.*\)"}.*/\1/p')"
   else
@@ -852,6 +853,35 @@ cmd_uninstall() {
     printf '%sdata volumes kept — add --purge to delete them%s\n' "$DIM" "$N"
   fi
   ok "$name uninstalled"
+}
+
+# Turn an installed custom tech into a catalog-shaped directory, ready for a PR.
+cmd_contribute() {
+  local name="${1:-}" dest="${2:-./infrapack-catalog}"
+  [[ -n "$name" ]] || die "usage: infrapack contribute <custom-tech> [dir]"
+  is_installed "$name" || die "$name is not installed"
+  in_catalog "$name" && die "$name is already a catalog entry — edit catalog/$name in a checkout instead"
+  mkdir -p "$dest"
+  [[ -e "$dest/$name" ]] && die "$dest/$name already exists"
+  cp -R "$STACKS_DIR/$name" "$dest/$name"
+  rm -rf "$dest/$name/generated"
+  # drop the custom marker; the rest of stack.json is what the catalog needs
+  local tmp; tmp="$(mktemp)"
+  registry_stdin registry decustom - < "$dest/$name/stack.json" > "$tmp" && mv "$tmp" "$dest/$name/stack.json"
+  ok "wrote $dest/$name"
+  cat <<EOF
+
+${B}Before opening the PR (catalog: $name)${N}
+  1. stack.json: a one-line "blurb", a "category" (database, cache, messaging, search,
+     storage, cloud, auth, observability, mail, workflow), labels and facts a stranger
+     would understand, and every setting a person might change
+  2. compose.yml: a healthcheck (127.0.0.1, generous start_period), a pinned image tag,
+     data in a named volume, default host ports that clash with nothing in the catalog
+  3. defaults.env: every \\${VAR:-default} used above, with a comment for any unusual port
+  4. move $dest/$name into catalog/ in your fork of
+     https://github.com/Mostly-Works-Studio/infrapack and run: scripts/test-catalog.sh $name
+  5. open the PR — CONTRIBUTING.md has the full checklist. Thank you!
+EOF
 }
 
 # ------------------------------------------------------------------ config --
@@ -1083,6 +1113,7 @@ ${B}Techs${N}
                        ${DIM}infrapack add mq --image nats:2-alpine --port 4222 --volume /data${N}
                        ${DIM}infrapack add app --compose ./docker-compose.yml${N}
   <stack> <command>    tech-specific helpers        ${DIM}infrapack kafka topics · infrapack mysql shell${N}
+  contribute <name>    package a custom tech as a catalog entry to open a PR with
 
 ${B}Sharing${N}
   init [tech...]       write infrapack.yaml for this repo (default: what is running)
@@ -1146,6 +1177,7 @@ case "$cmd" in
   install)            cmd_install "$@" ;;
   uninstall|remove)   cmd_uninstall "$@" ;;
   add)                cmd_add "$@" ;;
+  contribute)         cmd_contribute "$@" ;;
   _finish-install)    finish_install "$@" ;;
   config|settings)    cmd_config "$@" ;;
   init)               cmd_init "$@" ;;

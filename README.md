@@ -223,9 +223,27 @@ to edit by hand.
 
 ### Adding a tech to the catalog
 
-Create `catalog/<name>/` with the files above. Look at `catalog/redis` for the
-smallest example and `catalog/mysql` for hooks and commands. Start it with
-`infrapack install <name>`; the console picks it up with no other change.
+A catalog entry is a directory under `catalog/<name>/` with the files listed
+under *How it fits together*. In short:
+
+1. Copy the closest existing entry (`catalog/redis` is the smallest,
+   `catalog/mysql` has hooks and commands, `catalog/monitoring` is
+   multi-service).
+2. Name the core service after the directory, the web UI `<name>-ui`, volumes
+   `<name>-…`. Every host port, image tag and credential is a `${VAR:-default}`
+   listed in `defaults.env` and declared under `settings` in `stack.json`.
+3. Pick default host ports that clash with nothing else in the catalog, add a
+   healthcheck, pin the image tag, show in-network facts.
+4. `scripts/test-catalog.sh <name>` must pass: it installs, waits for every
+   service to be healthy, and uninstalls.
+
+The full checklist is in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+**Help maintain InfraPack.** If you built something as a custom tech and think
+other people would want it too, `infrapack contribute <name>` turns it into a
+catalog-shaped directory with a checklist; open a pull request titled
+`catalog: <name>`. Every entry is boot-tested in CI, so a green run is most of
+the review.
 
 ## Sharing a setup
 

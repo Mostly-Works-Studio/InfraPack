@@ -188,6 +188,15 @@ def main(argv):
     if cmd == "json":
         print(json.dumps(load_all(), indent=2))
         return 0
+    if cmd == "decustom":                      # infrapack contribute: stack.json in, catalog-shaped out
+        data = json.loads(sys.stdin.read())
+        data.pop("custom", None)
+        if data.get("category") in (None, "custom"):
+            data["category"] = "other"
+        if not data.get("blurb") or data["blurb"].startswith("custom"):
+            data["blurb"] = "TODO: one line on what it is and why you'd want it locally"
+        print(json.dumps(data, indent=2, ensure_ascii=False))
+        return 0
 
     stack = by_name(arg) if arg else None
     if stack is None:
