@@ -114,4 +114,4 @@ printf '%sNext%s\n' "$B" "$N"
 printf '  infrapack catalog          # what can be installed\n'
 printf '  infrapack install postgres # add one and start it\n'
 printf '  infrapack open             # the web console\n'
-printf '  (open it once, then "Add to Dock" / "Install app" in the browser — no address to remember)\n'
+printf '  infrapack app install      # an InfraPack app in Spotlight / the Dock that opens the console\n'
