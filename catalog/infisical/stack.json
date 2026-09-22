@@ -1,0 +1,27 @@
+{
+  "stack": "infisical",
+  "label": "Infisical",
+  "blurb": "Open-source secrets manager · own PostgreSQL and Redis · create the first admin in the UI",
+  "category": "auth",
+  "services": [
+    {
+      "name": "infisical",
+      "label": "Infisical",
+      "desc": "Infisical {INFISICAL_VERSION}",
+      "link": "http://localhost:{INFISICAL_PORT}",
+      "facts": [
+        {"label": "URL", "value": "http://localhost:{INFISICAL_PORT}", "copy": true},
+        {"label": "First run", "value": "sign up in the UI — the first account becomes admin"},
+        {"label": "In-network", "value": "http://infisical:8080", "copy": true}
+      ]
+    },
+    {"name": "infisical-db", "label": "Infisical DB", "desc": "PostgreSQL used by Infisical only", "facts": [{"label": "Access", "value": "internal"}]},
+    {"name": "infisical-redis", "label": "Infisical Redis", "desc": "Redis used by Infisical only", "facts": [{"label": "Access", "value": "internal"}]}
+  ],
+  "settings": [
+    {"key": "INFISICAL_PORT", "label": "Port", "type": "port", "group": "Infisical"},
+    {"key": "INFISICAL_ENCRYPTION_KEY", "label": "Encryption key", "type": "secret", "group": "Infisical", "note": "applied on first start only"},
+    {"key": "INFISICAL_AUTH_SECRET", "label": "Auth secret", "type": "secret", "group": "Infisical"},
+    {"key": "INFISICAL_VERSION", "label": "Image tag", "type": "text", "group": "Infisical"}
+  ]
+}

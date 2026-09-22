@@ -1,0 +1,26 @@
+# Meilisearch — fast typo-tolerant search with a built-in mini dashboard. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  meilisearch:
+    image: getmeili/meilisearch:${MEILISEARCH_VERSION:-latest}
+    container_name: infrapack-meilisearch
+    restart: *restart
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_MASTER_KEY:-infrapack-master-key-change-me}
+      MEILI_ENV: development
+      MEILI_NO_ANALYTICS: "true"
+    ports:
+      - "${MEILISEARCH_PORT:-7700}:7700"
+    volumes:
+      - meilisearch-data:/meili_data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:7700/health | grep -q available"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    networks: [infra]
+
+volumes:
+  meilisearch-data:

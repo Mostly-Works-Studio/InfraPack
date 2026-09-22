@@ -1,0 +1,26 @@
+{
+  "stack": "cockroachdb",
+  "label": "CockroachDB",
+  "blurb": "Distributed SQL, Postgres wire-compatible · single node, insecure · DB Console built in",
+  "category": "database",
+  "services": [
+    {
+      "name": "cockroachdb",
+      "label": "CockroachDB",
+      "desc": "CockroachDB {COCKROACHDB_VERSION} · insecure single node",
+      "link": "http://localhost:{COCKROACHDB_UI_PORT}",
+      "facts": [
+        {"label": "Host", "value": "localhost:{COCKROACHDB_PORT}", "copy": true},
+        {"label": "URL", "value": "postgresql://root@localhost:{COCKROACHDB_PORT}/defaultdb?sslmode=disable", "copy": true},
+        {"label": "User", "value": "root (no password)"},
+        {"label": "In-network", "value": "cockroachdb:26257", "copy": true},
+        {"label": "DB Console", "value": "http://localhost:{COCKROACHDB_UI_PORT}", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "COCKROACHDB_PORT", "label": "SQL port", "type": "port", "group": "CockroachDB"},
+    {"key": "COCKROACHDB_UI_PORT", "label": "Console port", "type": "port", "group": "CockroachDB"},
+    {"key": "COCKROACHDB_VERSION", "label": "Image tag", "type": "text", "group": "CockroachDB"}
+  ]
+}

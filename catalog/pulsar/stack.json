@@ -1,0 +1,25 @@
+{
+  "stack": "pulsar",
+  "label": "Apache Pulsar",
+  "blurb": "Pub/sub messaging & streaming · standalone broker · admin REST API",
+  "category": "messaging",
+  "services": [
+    {
+      "name": "pulsar",
+      "label": "Pulsar",
+      "desc": "Pulsar {PULSAR_VERSION} standalone · broker :{PULSAR_PORT} · admin :{PULSAR_UI_PORT}",
+      "facts": [
+        {"label": "Service URL", "value": "pulsar://localhost:{PULSAR_PORT}", "copy": true},
+        {"label": "Admin URL", "value": "http://localhost:{PULSAR_UI_PORT}", "copy": true},
+        {"label": "In-network", "value": "pulsar://pulsar:6650 · http://pulsar:8080", "copy": true},
+        {"label": "Tenant / namespace", "value": "public/default", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "PULSAR_PORT", "label": "Broker port", "type": "port", "group": "Pulsar"},
+    {"key": "PULSAR_UI_PORT", "label": "Admin port", "type": "port", "group": "Pulsar"},
+    {"key": "PULSAR_MEM", "label": "JVM memory", "type": "text", "group": "Pulsar"},
+    {"key": "PULSAR_VERSION", "label": "Image tag", "type": "text", "group": "Pulsar"}
+  ]
+}

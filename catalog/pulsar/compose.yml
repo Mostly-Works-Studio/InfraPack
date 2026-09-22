@@ -1,0 +1,27 @@
+# Apache Pulsar standalone. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  pulsar:
+    image: apachepulsar/pulsar:${PULSAR_VERSION:-latest}
+    container_name: infrapack-pulsar
+    restart: *restart
+    command: ["sh", "-c", "bin/apply-config-from-env.py conf/standalone.conf && exec bin/pulsar standalone"]
+    environment:
+      PULSAR_MEM: ${PULSAR_MEM:--Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m}
+      PULSAR_PREFIX_advertisedAddress: pulsar
+    ports:
+      - "${PULSAR_PORT:-6650}:6650"
+      - "${PULSAR_UI_PORT:-8089}:8080"
+    volumes:
+      - pulsar-data:/pulsar/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8080/admin/v2/brokers/health | grep -q ok"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 45s
+    networks: [infra]
+
+volumes:
+  pulsar-data:

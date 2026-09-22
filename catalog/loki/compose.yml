@@ -1,0 +1,19 @@
+# Grafana Loki — log aggregation. Managed by InfraPack. Pairs with the monitoring entry
+# (its Grafana has a Loki datasource pointing here).
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  loki:
+    image: grafana/loki:${LOKI_VERSION:-latest}
+    container_name: infrapack-loki
+    restart: *restart
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - loki-data:/loki
+    # no healthcheck: the image has no shell or wget; /ready on :3100 reports readiness
+    networks: [infra]
+
+volumes:
+  loki-data:

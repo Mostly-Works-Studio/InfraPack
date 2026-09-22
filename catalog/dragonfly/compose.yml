@@ -1,0 +1,26 @@
+# Dragonfly — Redis/Memcached-compatible in-memory store. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:${DRAGONFLY_VERSION:-latest}
+    container_name: infrapack-dragonfly
+    restart: *restart
+    # the defaults size themselves for the whole machine; keep it small locally
+    command: ["dragonfly", "--proactor_threads=2", "--maxmemory=${DRAGONFLY_MAXMEMORY:-512mb}"]
+    ulimits:
+      memlock: -1
+    ports:
+      - "${DRAGONFLY_PORT:-6382}:6379"
+    volumes:
+      - dragonfly-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    networks: [infra]
+
+volumes:
+  dragonfly-data:

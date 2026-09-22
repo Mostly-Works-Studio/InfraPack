@@ -1,0 +1,34 @@
+{
+  "stack": "milvus",
+  "label": "Milvus",
+  "blurb": "Vector database · standalone with embedded etcd · Attu as its web UI · slow first start",
+  "category": "database",
+  "services": [
+    {
+      "name": "milvus",
+      "label": "Milvus",
+      "desc": "Milvus {MILVUS_VERSION} standalone · gRPC :{MILVUS_PORT}",
+      "facts": [
+        {"label": "Host", "value": "localhost:{MILVUS_PORT}", "copy": true},
+        {"label": "URI", "value": "http://localhost:{MILVUS_PORT}", "copy": true},
+        {"label": "In-network", "value": "milvus:19530", "copy": true},
+        {"label": "Auth", "value": "none (root/Milvus if enabled)"}
+      ]
+    },
+    {
+      "name": "milvus-ui",
+      "label": "Attu",
+      "ui": true,
+      "desc": "Collections, vectors, queries",
+      "link": "http://localhost:{MILVUS_UI_PORT}",
+      "facts": [{"label": "Milvus address", "value": "milvus:19530 (pre-filled)"}]
+    }
+  ],
+  "settings": [
+    {"key": "MILVUS_PORT", "label": "gRPC port", "type": "port", "group": "Milvus"},
+    {"key": "MILVUS_METRICS_PORT", "label": "Metrics port", "type": "port", "group": "Milvus"},
+    {"key": "MILVUS_VERSION", "label": "Image tag", "type": "text", "group": "Milvus"},
+    {"key": "MILVUS_UI_PORT", "label": "Port", "type": "port", "group": "Attu"},
+    {"key": "MILVUS_UI_VERSION", "label": "Image tag", "type": "text", "group": "Attu"}
+  ]
+}

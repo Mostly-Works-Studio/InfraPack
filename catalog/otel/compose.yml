@@ -1,0 +1,16 @@
+# OpenTelemetry Collector (contrib). Receives OTLP, exports where files/otel-config.yaml says.
+# Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  otel:
+    image: otel/opentelemetry-collector-contrib:${OTEL_VERSION:-latest}
+    container_name: infrapack-otel
+    restart: *restart
+    command: ["--config=/etc/otelcol/config.yaml"]
+    ports:
+      - "${OTEL_GRPC_PORT:-4327}:4317"
+      - "${OTEL_HTTP_PORT:-4328}:4318"
+    volumes:
+      - ${INFRAPACK_HOME}/stacks/otel/files/otel-config.yaml:/etc/otelcol/config.yaml:ro
+    networks: [infra]

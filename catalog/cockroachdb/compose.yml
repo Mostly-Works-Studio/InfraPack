@@ -1,0 +1,24 @@
+# CockroachDB single node, insecure mode, with its built-in DB Console. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  cockroachdb:
+    image: cockroachdb/cockroach:${COCKROACHDB_VERSION:-latest}
+    container_name: infrapack-cockroachdb
+    restart: *restart
+    command: start-single-node --insecure
+    ports:
+      - "${COCKROACHDB_PORT:-26257}:26257"
+      - "${COCKROACHDB_UI_PORT:-8085}:8080"
+    volumes:
+      - cockroachdb-data:/cockroach/cockroach-data
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8080/health?ready=1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    networks: [infra]
+
+volumes:
+  cockroachdb-data:

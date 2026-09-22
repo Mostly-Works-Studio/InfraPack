@@ -1,0 +1,15 @@
+# Inngest Dev Server — event-driven durable functions, local. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  inngest:
+    image: inngest/inngest:${INNGEST_VERSION:-latest}
+    container_name: infrapack-inngest
+    restart: *restart
+    command: ["inngest", "dev", "--host", "0.0.0.0", "--port", "8288", "--no-discovery", "--no-poll",
+              "-u", "${INNGEST_APP_URL:-http://host.docker.internal:3000/api/inngest}"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${INNGEST_PORT:-8288}:8288"
+    networks: [infra]

@@ -1,0 +1,24 @@
+{
+  "stack": "typesense",
+  "label": "Typesense",
+  "blurb": "Fast, typo-tolerant search engine · simple REST API · Algolia-style",
+  "category": "search",
+  "services": [
+    {
+      "name": "typesense",
+      "label": "Typesense",
+      "desc": "Typesense {TYPESENSE_VERSION}",
+      "facts": [
+        {"label": "URL", "value": "http://localhost:{TYPESENSE_PORT}", "copy": true},
+        {"label": "API key", "value": "{TYPESENSE_API_KEY}", "copy": true, "secret": true},
+        {"label": "In-network", "value": "http://typesense:8108", "copy": true},
+        {"label": "Health", "value": "http://localhost:{TYPESENSE_PORT}/health", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "TYPESENSE_PORT", "label": "Port", "type": "port", "group": "Typesense"},
+    {"key": "TYPESENSE_API_KEY", "label": "API key", "type": "secret", "group": "Typesense", "note": "applied on restart"},
+    {"key": "TYPESENSE_VERSION", "label": "Image tag", "type": "text", "group": "Typesense"}
+  ]
+}

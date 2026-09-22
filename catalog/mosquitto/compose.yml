@@ -1,0 +1,24 @@
+# Eclipse Mosquitto MQTT broker (anonymous access, MQTT + WebSockets). Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:${MOSQUITTO_VERSION:-2}
+    container_name: infrapack-mosquitto
+    restart: *restart
+    ports:
+      - "${MOSQUITTO_PORT:-1883}:1883"
+      - "${MOSQUITTO_WS_PORT:-9003}:9001"
+    volumes:
+      - ${INFRAPACK_HOME}/stacks/mosquitto/files/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -t '$$SYS/broker/uptime' -C 1 -W 3 >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 3s
+    networks: [infra]
+
+volumes:
+  mosquitto-data:

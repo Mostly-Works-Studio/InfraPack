@@ -1,0 +1,23 @@
+{
+  "stack": "pubsub",
+  "label": "Pub/Sub emulator",
+  "blurb": "Google Cloud Pub/Sub emulator · topics and subscriptions · in-memory",
+  "category": "cloud",
+  "services": [
+    {
+      "name": "pubsub",
+      "label": "Pub/Sub emulator",
+      "desc": "gcloud emulators pubsub · project {PUBSUB_PROJECT} · data is NOT persisted",
+      "facts": [
+        {"label": "Env for clients", "value": "PUBSUB_EMULATOR_HOST=localhost:{PUBSUB_PORT}", "copy": true},
+        {"label": "Project", "value": "{PUBSUB_PROJECT}", "copy": true},
+        {"label": "In-network", "value": "pubsub:8085", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "PUBSUB_PORT", "label": "Port", "type": "port", "group": "Pub/Sub emulator"},
+    {"key": "PUBSUB_PROJECT", "label": "Project id", "type": "text", "group": "Pub/Sub emulator"},
+    {"key": "PUBSUB_VERSION", "label": "Image tag", "type": "text", "group": "Pub/Sub emulator"}
+  ]
+}

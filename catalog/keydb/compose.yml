@@ -1,0 +1,23 @@
+# KeyDB — multithreaded Redis fork, drop-in compatible. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  keydb:
+    image: eqalpha/keydb:${KEYDB_VERSION:-latest}
+    container_name: infrapack-keydb
+    restart: *restart
+    command: ["keydb-server", "--server-threads", "2", "--appendonly", "yes"]
+    ports:
+      - "${KEYDB_PORT:-6381}:6379"
+    volumes:
+      - keydb-data:/data
+    healthcheck:
+      test: ["CMD", "keydb-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    networks: [infra]
+
+volumes:
+  keydb-data:

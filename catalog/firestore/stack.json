@@ -1,0 +1,23 @@
+{
+  "stack": "firestore",
+  "label": "Firestore emulator",
+  "blurb": "Google Cloud Firestore emulator · in-memory · any credentials accepted",
+  "category": "cloud",
+  "services": [
+    {
+      "name": "firestore",
+      "label": "Firestore emulator",
+      "desc": "gcloud emulators firestore · project {FIRESTORE_PROJECT} · data is NOT persisted",
+      "facts": [
+        {"label": "Env for clients", "value": "FIRESTORE_EMULATOR_HOST=localhost:{FIRESTORE_PORT}", "copy": true},
+        {"label": "Project", "value": "{FIRESTORE_PROJECT}", "copy": true},
+        {"label": "In-network", "value": "firestore:8080", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "FIRESTORE_PORT", "label": "Port", "type": "port", "group": "Firestore emulator"},
+    {"key": "FIRESTORE_PROJECT", "label": "Project id", "type": "text", "group": "Firestore emulator"},
+    {"key": "FIRESTORE_VERSION", "label": "Image tag", "type": "text", "group": "Firestore emulator"}
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "stack": "maestro",
+  "label": "Netflix Maestro",
+  "blurb": "Netflix's workflow orchestrator · built from source on first start (slow) · own PostgreSQL",
+  "category": "workflow",
+  "services": [
+    {
+      "name": "maestro",
+      "label": "Maestro",
+      "desc": "maestro-server @ {MAESTRO_REF} · REST API on :{MAESTRO_PORT} · no UI upstream",
+      "facts": [
+        {"label": "API", "value": "http://localhost:{MAESTRO_PORT}/api/v3", "copy": true},
+        {"label": "In-network", "value": "http://maestro:8080", "copy": true},
+        {"label": "Header", "value": "user: <name>  (required on write calls)", "copy": true},
+        {"label": "Try it", "value": "infrapack maestro sample", "copy": true}
+      ]
+    },
+    {"name": "maestro-db", "label": "Maestro DB", "desc": "PostgreSQL used by Maestro only", "facts": [{"label": "Access", "value": "internal (root, trust auth)"}]}
+  ],
+  "settings": [
+    {"key": "MAESTRO_PORT", "label": "Port", "type": "port", "group": "Maestro"},
+    {"key": "MAESTRO_REF", "label": "Git ref to build", "type": "text", "group": "Maestro", "note": "rebuild with: infrapack maestro rebuild"},
+    {"key": "MAESTRO_JAVA_OPTS", "label": "JVM options", "type": "text", "group": "Maestro"}
+  ]
+}

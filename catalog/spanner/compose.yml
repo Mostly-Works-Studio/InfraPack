@@ -1,0 +1,12 @@
+# Cloud Spanner emulator. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  spanner:
+    image: gcr.io/cloud-spanner-emulator/emulator:${SPANNER_VERSION:-latest}
+    container_name: infrapack-spanner
+    restart: *restart
+    ports:
+      - "${SPANNER_PORT:-9020}:9010"
+      - "${SPANNER_REST_PORT:-9021}:9020"
+    networks: [infra]

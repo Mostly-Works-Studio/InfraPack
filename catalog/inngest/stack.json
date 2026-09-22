@@ -1,0 +1,25 @@
+{
+  "stack": "inngest",
+  "label": "Inngest",
+  "blurb": "Durable functions & event workflows · dev server with UI · syncs with your app on your machine",
+  "category": "workflow",
+  "services": [
+    {
+      "name": "inngest",
+      "label": "Inngest Dev Server",
+      "desc": "inngest dev {INNGEST_VERSION} · app at {INNGEST_APP_URL}",
+      "link": "http://localhost:{INNGEST_PORT}",
+      "facts": [
+        {"label": "UI", "value": "http://localhost:{INNGEST_PORT}", "copy": true},
+        {"label": "Env for apps", "value": "INNGEST_DEV=1 INNGEST_BASE_URL=http://localhost:{INNGEST_PORT}", "copy": true},
+        {"label": "Your app URL", "value": "{INNGEST_APP_URL}", "copy": true},
+        {"label": "In-network", "value": "http://inngest:8288", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "INNGEST_PORT", "label": "Port", "type": "port", "group": "Inngest"},
+    {"key": "INNGEST_APP_URL", "label": "Your app's Inngest URL", "type": "text", "group": "Inngest"},
+    {"key": "INNGEST_VERSION", "label": "Image tag", "type": "text", "group": "Inngest"}
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "stack": "pgvector",
+  "label": "PostgreSQL + pgvector",
+  "blurb": "Postgres with the pgvector extension enabled · embeddings & similarity search · pgweb UI",
+  "category": "database",
+  "services": [
+    {
+      "name": "pgvector",
+      "label": "PostgreSQL + pgvector",
+      "desc": "pgvector/pgvector:{PGVECTOR_VERSION} · CREATE EXTENSION vector already run",
+      "facts": [
+        {"label": "Host", "value": "localhost:{PGVECTOR_PORT}", "copy": true},
+        {"label": "Database", "value": "{PGVECTOR_DATABASE}", "copy": true},
+        {"label": "User", "value": "{PGVECTOR_USER}", "copy": true},
+        {"label": "Password", "value": "{PGVECTOR_PASSWORD}", "copy": true, "secret": true},
+        {"label": "URL", "value": "postgresql://{PGVECTOR_USER}:{PGVECTOR_PASSWORD}@localhost:{PGVECTOR_PORT}/{PGVECTOR_DATABASE}", "copy": true, "secret": true},
+        {"label": "In-network", "value": "pgvector:5432", "copy": true}
+      ]
+    },
+    {
+      "name": "pgvector-ui",
+      "label": "pgweb",
+      "ui": true,
+      "desc": "Browse tables, run SQL",
+      "link": "http://localhost:{PGVECTOR_UI_PORT}",
+      "facts": [{"label": "Sign-in", "value": "not required (pre-connected)"}]
+    }
+  ],
+  "settings": [
+    {"key": "PGVECTOR_PORT", "label": "Port", "type": "port", "group": "PostgreSQL + pgvector"},
+    {"key": "PGVECTOR_DATABASE", "label": "Database", "type": "text", "group": "PostgreSQL + pgvector", "note": "applied on first start only"},
+    {"key": "PGVECTOR_USER", "label": "User", "type": "text", "group": "PostgreSQL + pgvector", "note": "applied on first start only"},
+    {"key": "PGVECTOR_PASSWORD", "label": "Password", "type": "secret", "group": "PostgreSQL + pgvector", "note": "applied on first start only"},
+    {"key": "PGVECTOR_VERSION", "label": "Image tag", "type": "text", "group": "PostgreSQL + pgvector"},
+    {"key": "PGVECTOR_UI_PORT", "label": "Port", "type": "port", "group": "pgweb"},
+    {"key": "PGVECTOR_UI_VERSION", "label": "Image tag", "type": "text", "group": "pgweb"}
+  ]
+}

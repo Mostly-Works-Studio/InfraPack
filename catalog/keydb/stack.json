@@ -1,0 +1,22 @@
+{
+  "stack": "keydb",
+  "label": "KeyDB",
+  "blurb": "Multithreaded Redis fork · drop-in compatible with Redis clients",
+  "category": "cache",
+  "services": [
+    {
+      "name": "keydb",
+      "label": "KeyDB",
+      "desc": "KeyDB {KEYDB_VERSION} · 2 server threads · AOF on",
+      "facts": [
+        {"label": "Host", "value": "localhost:{KEYDB_PORT}", "copy": true},
+        {"label": "URL", "value": "redis://localhost:{KEYDB_PORT}", "copy": true},
+        {"label": "In-network", "value": "keydb:6379", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "KEYDB_PORT", "label": "Port", "type": "port", "group": "KeyDB"},
+    {"key": "KEYDB_VERSION", "label": "Image tag", "type": "text", "group": "KeyDB"}
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "stack": "dragonfly",
+  "label": "Dragonfly",
+  "blurb": "Modern Redis-compatible in-memory store · multi-threaded, snapshots to disk",
+  "category": "cache",
+  "services": [
+    {
+      "name": "dragonfly",
+      "label": "Dragonfly",
+      "desc": "Dragonfly {DRAGONFLY_VERSION} · Redis protocol",
+      "facts": [
+        {"label": "Host", "value": "localhost:{DRAGONFLY_PORT}", "copy": true},
+        {"label": "URL", "value": "redis://localhost:{DRAGONFLY_PORT}", "copy": true},
+        {"label": "In-network", "value": "dragonfly:6379", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "DRAGONFLY_PORT", "label": "Port", "type": "port", "group": "Dragonfly"},
+    {"key": "DRAGONFLY_MAXMEMORY", "label": "Max memory", "type": "text", "group": "Dragonfly"},
+    {"key": "DRAGONFLY_VERSION", "label": "Image tag", "type": "text", "group": "Dragonfly"}
+  ]
+}

@@ -1,0 +1,26 @@
+# Prefect 3 server (SQLite) with its UI. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  prefect:
+    image: prefecthq/prefect:${PREFECT_VERSION:-3-latest}
+    container_name: infrapack-prefect
+    restart: *restart
+    command: ["prefect", "server", "start", "--host", "0.0.0.0", "--port", "4200"]
+    environment:
+      PREFECT_UI_API_URL: http://localhost:${PREFECT_PORT:-4200}/api
+      PREFECT_SERVER_ANALYTICS_ENABLED: "false"
+    ports:
+      - "${PREFECT_PORT:-4200}:4200"
+    volumes:
+      - prefect-data:/root/.prefect
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://127.0.0.1:4200/api/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    networks: [infra]
+
+volumes:
+  prefect-data:

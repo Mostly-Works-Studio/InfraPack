@@ -1,0 +1,23 @@
+{
+  "stack": "gcs",
+  "label": "GCS emulator",
+  "blurb": "Google Cloud Storage emulator (fake-gcs-server) · buckets and objects over HTTP",
+  "category": "cloud",
+  "services": [
+    {
+      "name": "gcs",
+      "label": "GCS emulator",
+      "desc": "fake-gcs-server {GCS_VERSION} · http, no auth",
+      "facts": [
+        {"label": "Endpoint", "value": "http://localhost:{GCS_PORT}", "copy": true},
+        {"label": "Env for clients", "value": "STORAGE_EMULATOR_HOST=http://localhost:{GCS_PORT}", "copy": true},
+        {"label": "In-network", "value": "http://gcs:4443", "copy": true},
+        {"label": "List buckets", "value": "http://localhost:{GCS_PORT}/storage/v1/b", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "GCS_PORT", "label": "Port", "type": "port", "group": "GCS emulator"},
+    {"key": "GCS_VERSION", "label": "Image tag", "type": "text", "group": "GCS emulator"}
+  ]
+}

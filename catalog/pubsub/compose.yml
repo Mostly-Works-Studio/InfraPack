@@ -1,0 +1,18 @@
+# Google Cloud Pub/Sub emulator from the Google Cloud CLI image. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  pubsub:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:${PUBSUB_VERSION:-emulators}
+    container_name: infrapack-pubsub
+    restart: *restart
+    command: ["gcloud", "beta", "emulators", "pubsub", "start", "--host-port=0.0.0.0:8085", "--project=${PUBSUB_PROJECT:-local}"]
+    ports:
+      - "${PUBSUB_PORT:-8091}:8085"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8085/ | grep -q Ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    networks: [infra]

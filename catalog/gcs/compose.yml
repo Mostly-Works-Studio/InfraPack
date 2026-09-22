@@ -1,0 +1,17 @@
+# fake-gcs-server — Google Cloud Storage emulator. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  gcs:
+    image: fsouza/fake-gcs-server:${GCS_VERSION:-latest}
+    container_name: infrapack-gcs
+    restart: *restart
+    command: ["-scheme", "http", "-port", "4443", "-external-url", "http://localhost:${GCS_PORT:-4443}", "-public-host", "localhost:${GCS_PORT:-4443}"]
+    ports:
+      - "${GCS_PORT:-4443}:4443"
+    volumes:
+      - gcs-data:/storage
+    networks: [infra]
+
+volumes:
+  gcs-data:

@@ -1,0 +1,24 @@
+{
+  "stack": "n8n",
+  "label": "n8n",
+  "blurb": "Low-code workflow automation · 400+ integrations · create the owner account on first open",
+  "category": "workflow",
+  "services": [
+    {
+      "name": "n8n",
+      "label": "n8n",
+      "desc": "n8n {N8N_VERSION}",
+      "link": "http://localhost:{N8N_PORT}",
+      "facts": [
+        {"label": "URL", "value": "http://localhost:{N8N_PORT}", "copy": true},
+        {"label": "First run", "value": "set up the owner account in the UI"},
+        {"label": "Webhooks", "value": "http://localhost:{N8N_PORT}/webhook/…", "copy": true},
+        {"label": "In-network", "value": "http://n8n:5678", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "N8N_PORT", "label": "Port", "type": "port", "group": "n8n"},
+    {"key": "N8N_VERSION", "label": "Image tag", "type": "text", "group": "n8n"}
+  ]
+}

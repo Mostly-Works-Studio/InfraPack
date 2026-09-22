@@ -1,0 +1,25 @@
+{
+  "stack": "otel",
+  "label": "OpenTelemetry Collector",
+  "blurb": "OTLP receiver for traces, metrics and logs · route to Jaeger, Prometheus or Loki via its config",
+  "category": "observability",
+  "services": [
+    {
+      "name": "otel",
+      "label": "OTel Collector",
+      "desc": "opentelemetry-collector-contrib {OTEL_VERSION} · config in files/otel-config.yaml",
+      "facts": [
+        {"label": "OTLP gRPC", "value": "http://localhost:{OTEL_GRPC_PORT}", "copy": true},
+        {"label": "OTLP HTTP", "value": "http://localhost:{OTEL_HTTP_PORT}", "copy": true},
+        {"label": "Env for apps", "value": "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:{OTEL_HTTP_PORT}", "copy": true},
+        {"label": "In-network", "value": "http://otel:4317 (gRPC) · http://otel:4318 (HTTP)", "copy": true},
+        {"label": "Config", "value": "~/.infrapack/stacks/otel/files/otel-config.yaml", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "OTEL_GRPC_PORT", "label": "OTLP gRPC port", "type": "port", "group": "OTel Collector"},
+    {"key": "OTEL_HTTP_PORT", "label": "OTLP HTTP port", "type": "port", "group": "OTel Collector"},
+    {"key": "OTEL_VERSION", "label": "Image tag", "type": "text", "group": "OTel Collector"}
+  ]
+}

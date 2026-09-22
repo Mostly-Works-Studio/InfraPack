@@ -1,0 +1,23 @@
+{
+  "stack": "prefect",
+  "label": "Prefect",
+  "blurb": "Workflow orchestration for Python · Prefect 3 server + UI · point your flows at it",
+  "category": "workflow",
+  "services": [
+    {
+      "name": "prefect",
+      "label": "Prefect",
+      "desc": "Prefect {PREFECT_VERSION} server · SQLite",
+      "link": "http://localhost:{PREFECT_PORT}",
+      "facts": [
+        {"label": "UI", "value": "http://localhost:{PREFECT_PORT}", "copy": true},
+        {"label": "Env for flows", "value": "PREFECT_API_URL=http://localhost:{PREFECT_PORT}/api", "copy": true},
+        {"label": "In-network", "value": "http://prefect:4200/api", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "PREFECT_PORT", "label": "Port", "type": "port", "group": "Prefect"},
+    {"key": "PREFECT_VERSION", "label": "Image tag", "type": "text", "group": "Prefect"}
+  ]
+}

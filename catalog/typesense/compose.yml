@@ -1,0 +1,23 @@
+# Typesense — fast, typo-tolerant search engine. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  typesense:
+    image: typesense/typesense:${TYPESENSE_VERSION:-30.0}
+    container_name: infrapack-typesense
+    restart: *restart
+    command: ["--data-dir", "/data", "--api-key=${TYPESENSE_API_KEY:-infrapack}", "--enable-cors"]
+    ports:
+      - "${TYPESENSE_PORT:-8108}:8108"
+    volumes:
+      - typesense-data:/data
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8108 && printf 'GET /health HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '\"ok\":true' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    networks: [infra]
+
+volumes:
+  typesense-data:

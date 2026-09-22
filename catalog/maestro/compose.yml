@@ -1,0 +1,55 @@
+# Netflix Maestro workflow orchestrator, built from source, with its own PostgreSQL.
+# Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  maestro:
+    image: infrapack-maestro:${MAESTRO_REF:-main}
+    build:
+      context: ${INFRAPACK_HOME}/stacks/maestro/build
+      args:
+        MAESTRO_REF: ${MAESTRO_REF:-main}
+    container_name: infrapack-maestro
+    restart: *restart
+    environment:
+      JAVA_TOOL_OPTIONS: ${MAESTRO_JAVA_OPTS:--Xmx1g}
+      # Spring relaxed binding for engine.configs.* in application.yml
+      ENGINE_CONFIGS_JDBC_URL: jdbc:postgresql://maestro-db:5432/maestro
+      ENGINE_CONFIGS_JDBC_USERNAME: root
+      ENGINE_CONFIGS_DB_TYPE: postgres
+      ENGINE_CONFIGS_FLYWAY_ENABLED: "true"
+      ENGINE_CONFIGS_FLOW_ENGINE_ADDRESS: http://maestro:8080
+    ports:
+      - "${MAESTRO_PORT:-8094}:8080"
+    depends_on:
+      maestro-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8080/actuator/health | grep -q UP || curl -fs -o /dev/null http://localhost:8080/api/v3/workflows/none/versions/latest -w '%{http_code}' | grep -qE '^(200|404)$'"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+    networks: [infra]
+
+  maestro-db:
+    image: postgres:17-alpine
+    container_name: infrapack-maestro-db
+    restart: *restart
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: maestro
+      POSTGRES_DB: maestro
+      # Maestro's own dev config uses a passwordless local Postgres; internal-only here
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - maestro-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d maestro"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [infra]
+
+volumes:
+  maestro-db-data:

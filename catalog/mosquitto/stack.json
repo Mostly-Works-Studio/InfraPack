@@ -1,0 +1,24 @@
+{
+  "stack": "mosquitto",
+  "label": "Mosquitto (MQTT)",
+  "blurb": "MQTT broker for IoT and pub/sub · anonymous access · MQTT over WebSockets too",
+  "category": "messaging",
+  "services": [
+    {
+      "name": "mosquitto",
+      "label": "Mosquitto",
+      "desc": "Mosquitto {MOSQUITTO_VERSION} · MQTT :{MOSQUITTO_PORT} · WebSockets :{MOSQUITTO_WS_PORT}",
+      "facts": [
+        {"label": "MQTT", "value": "mqtt://localhost:{MOSQUITTO_PORT}", "copy": true},
+        {"label": "WebSockets", "value": "ws://localhost:{MOSQUITTO_WS_PORT}", "copy": true},
+        {"label": "In-network", "value": "mosquitto:1883", "copy": true},
+        {"label": "Auth", "value": "anonymous"}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "MOSQUITTO_PORT", "label": "MQTT port", "type": "port", "group": "Mosquitto"},
+    {"key": "MOSQUITTO_WS_PORT", "label": "WebSockets port", "type": "port", "group": "Mosquitto"},
+    {"key": "MOSQUITTO_VERSION", "label": "Image tag", "type": "text", "group": "Mosquitto"}
+  ]
+}

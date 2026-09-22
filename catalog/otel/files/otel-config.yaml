@@ -1,0 +1,41 @@
+# OpenTelemetry Collector config. Edit, then: infrapack restart otel
+# Default: accept OTLP and print a summary of what arrives (docker logs infrapack-otel).
+# To forward traces to Jaeger (install the jaeger entry), uncomment the otlp/jaeger
+# exporter and add it to the traces pipeline.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+
+exporters:
+  debug:
+    verbosity: basic
+  # otlp/jaeger:
+  #   endpoint: jaeger:4317
+  #   tls:
+  #     insecure: true
+  # prometheusremotewrite:
+  #   endpoint: http://prometheus:9090/api/v1/write
+  # loki:
+  #   endpoint: http://loki:3100/loki/api/v1/push
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]          # add otlp/jaeger here
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]

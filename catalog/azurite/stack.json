@@ -1,0 +1,26 @@
+{
+  "stack": "azurite",
+  "label": "Azurite",
+  "blurb": "Azure Storage emulator · Blob, Queue and Table on the well-known dev account",
+  "category": "cloud",
+  "services": [
+    {
+      "name": "azurite",
+      "label": "Azurite",
+      "desc": "Azurite {AZURITE_VERSION} · Blob :{AZURITE_BLOB_PORT} · Queue :{AZURITE_QUEUE_PORT} · Table :{AZURITE_TABLE_PORT}",
+      "facts": [
+        {"label": "Connection string", "value": "UseDevelopmentStorage=true", "copy": true},
+        {"label": "Blob endpoint", "value": "http://localhost:{AZURITE_BLOB_PORT}/devstoreaccount1", "copy": true},
+        {"label": "Account", "value": "devstoreaccount1", "copy": true},
+        {"label": "Account key", "value": "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==", "copy": true, "secret": true},
+        {"label": "In-network", "value": "http://azurite:10000/devstoreaccount1", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "AZURITE_BLOB_PORT", "label": "Blob port", "type": "port", "group": "Azurite"},
+    {"key": "AZURITE_QUEUE_PORT", "label": "Queue port", "type": "port", "group": "Azurite"},
+    {"key": "AZURITE_TABLE_PORT", "label": "Table port", "type": "port", "group": "Azurite"},
+    {"key": "AZURITE_VERSION", "label": "Image tag", "type": "text", "group": "Azurite"}
+  ]
+}

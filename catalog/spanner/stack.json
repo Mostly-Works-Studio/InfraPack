@@ -1,0 +1,24 @@
+{
+  "stack": "spanner",
+  "label": "Spanner emulator",
+  "blurb": "Google Cloud Spanner emulator · gRPC + REST · in-memory",
+  "category": "cloud",
+  "services": [
+    {
+      "name": "spanner",
+      "label": "Spanner emulator",
+      "desc": "cloud-spanner-emulator {SPANNER_VERSION} · data is NOT persisted",
+      "facts": [
+        {"label": "Env for clients", "value": "SPANNER_EMULATOR_HOST=localhost:{SPANNER_PORT}", "copy": true},
+        {"label": "REST", "value": "http://localhost:{SPANNER_REST_PORT}", "copy": true},
+        {"label": "In-network", "value": "spanner:9010", "copy": true},
+        {"label": "Note", "value": "create an instance first: gcloud spanner instances create … --config=emulator-config"}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "SPANNER_PORT", "label": "gRPC port", "type": "port", "group": "Spanner emulator"},
+    {"key": "SPANNER_REST_PORT", "label": "REST port", "type": "port", "group": "Spanner emulator"},
+    {"key": "SPANNER_VERSION", "label": "Image tag", "type": "text", "group": "Spanner emulator"}
+  ]
+}

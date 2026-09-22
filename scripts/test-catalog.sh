@@ -5,6 +5,7 @@
 #   scripts/test-catalog.sh              # every entry
 #   scripts/test-catalog.sh redis nats   # just these
 #   TIMEOUT=240 scripts/test-catalog.sh  # per-entry wait, seconds (default 180)
+#   PRUNE=1 scripts/test-catalog.sh      # drop each entry's images afterwards (CI disk)
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 IP="$HERE/bin/infrapack"
@@ -52,6 +53,10 @@ for name in "${entries[@]}"; do
     done
   fi
   "$IP" uninstall "$name" --purge >/dev/null 2>&1
+  if [[ "${PRUNE:-0}" == 1 ]]; then
+    docker image prune -af --filter "label!=keep" >/dev/null 2>&1 || true
+    docker builder prune -af >/dev/null 2>&1 || true
+  fi
 done
 
 printf '\n\033[1mResults\033[0m\n'

@@ -1,0 +1,25 @@
+{
+  "stack": "qdrant",
+  "label": "Qdrant",
+  "blurb": "Vector database · REST + gRPC · dashboard built in · no auth",
+  "category": "database",
+  "services": [
+    {
+      "name": "qdrant",
+      "label": "Qdrant",
+      "desc": "Qdrant {QDRANT_VERSION} · REST :{QDRANT_PORT} · gRPC :{QDRANT_GRPC_PORT}",
+      "link": "http://localhost:{QDRANT_PORT}/dashboard",
+      "facts": [
+        {"label": "REST", "value": "http://localhost:{QDRANT_PORT}", "copy": true},
+        {"label": "gRPC", "value": "localhost:{QDRANT_GRPC_PORT}", "copy": true},
+        {"label": "In-network", "value": "http://qdrant:6333", "copy": true},
+        {"label": "Dashboard", "value": "http://localhost:{QDRANT_PORT}/dashboard", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "QDRANT_PORT", "label": "REST port", "type": "port", "group": "Qdrant"},
+    {"key": "QDRANT_GRPC_PORT", "label": "gRPC port", "type": "port", "group": "Qdrant"},
+    {"key": "QDRANT_VERSION", "label": "Image tag", "type": "text", "group": "Qdrant"}
+  ]
+}

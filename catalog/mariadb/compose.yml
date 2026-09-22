@@ -1,0 +1,41 @@
+# MariaDB + Adminer. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  mariadb:
+    image: mariadb:${MARIADB_VERSION:-11}
+    container_name: infrapack-mariadb
+    restart: *restart
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-root}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-local}
+      MARIADB_USER: ${MARIADB_USER:-dev}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-dev}
+      TZ: ${TZ:-UTC}
+    ports:
+      - "${MARIADB_PORT:-3307}:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks: [infra]
+
+  mariadb-ui:
+    image: adminer:${MARIADB_UI_VERSION:-latest}
+    container_name: infrapack-mariadb-ui
+    restart: *restart
+    environment:
+      ADMINER_DEFAULT_SERVER: mariadb
+    ports:
+      - "${MARIADB_UI_PORT:-8084}:8080"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks: [infra]
+
+volumes:
+  mariadb-data:

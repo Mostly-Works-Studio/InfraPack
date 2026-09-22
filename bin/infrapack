@@ -522,7 +522,9 @@ cmd_up() {
   else
     info "starting: ${stacks[*]}$([[ $NO_UI == 1 ]] && echo ' (without UIs)')"
   fi
-  [[ ${#svcs[@]} -gt 0 ]] && dc up -d --remove-orphans "${svcs[@]}"
+  if [[ ${#svcs[@]} -gt 0 ]]; then
+    dc up -d --remove-orphans "${svcs[@]}" || die "start failed — see the output above (infrapack logs <service> for details)"
+  fi
   for stack in ${stacks[@]+"${stacks[@]}"}; do run_hook "$stack" post-up; done
   echo
   cmd_status ${stacks[@]+"${stacks[@]}"}
@@ -644,7 +646,7 @@ cmd_logs() {
 cmd_pull() {
   local stacks; stacks=($(resolve_stacks "$@"))
   [[ ${#stacks[@]} -gt 0 ]] || die "nothing installed"
-  dc pull $(services_for "${stacks[@]}")
+  dc pull --ignore-buildable $(services_for "${stacks[@]}")
 }
 
 cmd_reset() {

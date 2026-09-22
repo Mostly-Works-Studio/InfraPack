@@ -1,0 +1,18 @@
+# Firestore emulator from the Google Cloud CLI image. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  firestore:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:${FIRESTORE_VERSION:-emulators}
+    container_name: infrapack-firestore
+    restart: *restart
+    command: ["gcloud", "emulators", "firestore", "start", "--host-port=0.0.0.0:8080", "--project=${FIRESTORE_PROJECT:-local}"]
+    ports:
+      - "${FIRESTORE_PORT:-8090}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8080/ | grep -q Ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    networks: [infra]

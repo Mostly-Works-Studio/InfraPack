@@ -1,0 +1,33 @@
+{
+  "stack": "redpanda",
+  "label": "Redpanda",
+  "blurb": "Kafka-compatible streaming without a JVM · schema registry built in · Redpanda Console",
+  "category": "messaging",
+  "services": [
+    {
+      "name": "redpanda",
+      "label": "Redpanda",
+      "desc": "Redpanda {REDPANDA_VERSION} · dev-container mode",
+      "facts": [
+        {"label": "Bootstrap", "value": "localhost:{REDPANDA_PORT}", "copy": true},
+        {"label": "Schema registry", "value": "http://localhost:{REDPANDA_SCHEMA_PORT}", "copy": true},
+        {"label": "In-network", "value": "redpanda:9092 · http://redpanda:8081", "copy": true}
+      ]
+    },
+    {
+      "name": "redpanda-ui",
+      "label": "Redpanda Console",
+      "ui": true,
+      "desc": "Topics, messages, consumer groups, schemas",
+      "link": "http://localhost:{REDPANDA_UI_PORT}",
+      "facts": [{"label": "Sign-in", "value": "not required"}]
+    }
+  ],
+  "settings": [
+    {"key": "REDPANDA_PORT", "label": "Kafka port", "type": "port", "group": "Redpanda"},
+    {"key": "REDPANDA_SCHEMA_PORT", "label": "Schema registry port", "type": "port", "group": "Redpanda"},
+    {"key": "REDPANDA_VERSION", "label": "Image tag", "type": "text", "group": "Redpanda"},
+    {"key": "REDPANDA_UI_PORT", "label": "Port", "type": "port", "group": "Redpanda Console"},
+    {"key": "REDPANDA_UI_VERSION", "label": "Image tag", "type": "text", "group": "Redpanda Console"}
+  ]
+}

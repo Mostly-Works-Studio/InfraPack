@@ -1,0 +1,24 @@
+{
+  "stack": "airflow",
+  "label": "Apache Airflow",
+  "blurb": "Data pipelines & DAGs · standalone (SQLite) · no login · drop DAGs in files/dags",
+  "category": "workflow",
+  "services": [
+    {
+      "name": "airflow",
+      "label": "Airflow",
+      "desc": "Airflow {AIRFLOW_VERSION} standalone · slow first start",
+      "link": "http://localhost:{AIRFLOW_PORT}",
+      "facts": [
+        {"label": "URL", "value": "http://localhost:{AIRFLOW_PORT}", "copy": true},
+        {"label": "Sign-in", "value": "not required (all users are admin)"},
+        {"label": "DAGs folder", "value": "~/.infrapack/stacks/airflow/files/dags", "copy": true},
+        {"label": "In-network", "value": "http://airflow:8080", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "AIRFLOW_PORT", "label": "Port", "type": "port", "group": "Airflow"},
+    {"key": "AIRFLOW_VERSION", "label": "Image tag", "type": "text", "group": "Airflow"}
+  ]
+}

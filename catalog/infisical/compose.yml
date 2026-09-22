@@ -1,0 +1,55 @@
+# Infisical — open-source secrets manager, with its own PostgreSQL and Redis. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  infisical:
+    image: infisical/infisical:${INFISICAL_VERSION:-latest-postgres}
+    container_name: infrapack-infisical
+    restart: *restart
+    environment:
+      ENCRYPTION_KEY: ${INFISICAL_ENCRYPTION_KEY:-6c1fe4e407b8911c104518103505b218}
+      AUTH_SECRET: ${INFISICAL_AUTH_SECRET:-5lrMXKKWCVocS/uerPsl7V+TX/aaUaI7iDkgl3tSmLE=}
+      DB_CONNECTION_URI: postgres://infisical:infisical@infisical-db:5432/infisical
+      REDIS_URL: redis://infisical-redis:6379
+      SITE_URL: http://localhost:${INFISICAL_PORT:-8092}
+      TELEMETRY_ENABLED: "false"
+    ports:
+      - "${INFISICAL_PORT:-8092}:8080"
+    depends_on:
+      infisical-db:
+        condition: service_healthy
+      infisical-redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/status >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 40s
+    networks: [infra]
+
+  infisical-db:
+    image: postgres:16-alpine
+    container_name: infrapack-infisical-db
+    restart: *restart
+    environment:
+      POSTGRES_USER: infisical
+      POSTGRES_PASSWORD: infisical
+      POSTGRES_DB: infisical
+    volumes:
+      - infisical-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U infisical"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [infra]
+
+  infisical-redis:
+    image: redis:7-alpine
+    container_name: infrapack-infisical-redis
+    restart: *restart
+    networks: [infra]
+
+volumes:
+  infisical-db-data:

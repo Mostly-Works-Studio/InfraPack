@@ -146,26 +146,51 @@ Flags:  --no-ui   start/stop core services only, without their web UIs
 |---|---|---|---|
 | Databases | `cassandra` | Cassandra | main 9042 |
 | Databases | `clickhouse` | ClickHouse | main 8123 · native 9010 |
+| Databases | `cockroachdb` | CockroachDB | main 26257 · ui 8085 |
+| Databases | `mariadb` | MariaDB, Adminer | main 3307 · ui 8084 |
+| Databases | `milvus` | Milvus, Attu | main 19530 · metrics 9091 · ui 8087 |
 | Databases | `mongo` | MongoDB, Mongo Express | main 27017 · ui 8083 |
 | Databases | `mssql` | SQL Server (amd64 image; emulated on ARM) | main 1433 |
 | Databases | `mysql` | MySQL, CloudBeaver | main 3306 · ui 8978 |
-| Databases | `neo4j` | Neo4j | bolt 7687 · ui 7474 |
+| Databases | `neo4j` | Neo4j | main 7687 · ui 7474 |
+| Databases | `pgvector` | PostgreSQL + pgvector, pgweb | main 5433 · ui 8086 |
 | Databases | `postgres` | PostgreSQL, pgweb | main 5432 · ui 8082 |
+| Databases | `qdrant` | Qdrant | main 6333 · grpc 6334 |
+| Caches | `dragonfly` | Dragonfly | main 6382 |
+| Caches | `keydb` | KeyDB | main 6381 |
 | Caches | `memcached` | Memcached | main 11211 |
 | Caches | `redis` | Redis, RedisInsight | main 6379 · ui 5540 |
 | Messaging & streaming | `kafka` | Kafka, Kafka UI | main 9092 · ui 8081 |
+| Messaging & streaming | `mosquitto` | Mosquitto | main 1883 · ws 9003 |
 | Messaging & streaming | `nats` | NATS | main 4222 · monitor 8222 |
+| Messaging & streaming | `pulsar` | Pulsar | main 6650 · ui 8089 |
 | Messaging & streaming | `rabbitmq` | RabbitMQ | main 5672 · ui 15672 |
+| Messaging & streaming | `redpanda` | Redpanda, Redpanda Console | main 19092 · schema 18081 · ui 8088 |
 | Search | `elasticsearch` | Elasticsearch, Kibana | main 9200 · ui 5601 |
+| Search | `meilisearch` | Meilisearch | main 7700 |
 | Search | `opensearch` | OpenSearch, OpenSearch Dashboards | main 9201 · ui 5602 |
+| Search | `typesense` | Typesense | main 8108 |
 | Object storage | `minio` | MinIO | main 9000 · ui 9001 |
+| Cloud emulators | `azurite` | Azurite | blob 10000 · queue 10001 · table 10002 |
 | Cloud emulators | `dynamodb` | DynamoDB Local, dynamodb-admin | main 8000 · ui 8001 |
+| Cloud emulators | `firestore` | Firestore emulator | main 8090 |
+| Cloud emulators | `gcs` | GCS emulator | main 4443 |
 | Cloud emulators | `localstack` | LocalStack | main 4566 |
+| Cloud emulators | `pubsub` | Pub/Sub emulator | main 8091 |
+| Cloud emulators | `spanner` | Spanner emulator | main 9020 · rest 9021 |
+| Identity & secrets | `infisical` | Infisical, Infisical DB, Infisical Redis | main 8092 |
 | Identity & secrets | `keycloak` | Keycloak | main 8180 |
-| Identity & secrets | `vault` | Vault (persistent, auto-unsealed) | main 8200 |
-| Observability | `jaeger` | Jaeger | ui 16686 · otlp_grpc 4317 · otlp_http 4318 |
+| Identity & secrets | `vault` | Vault, Vault unsealer (persistent, auto-unsealed) | main 8200 |
+| Observability | `jaeger` | Jaeger | ui 16686 · otlp grpc 4317 · otlp http 4318 |
+| Observability | `loki` | Loki | main 3100 |
 | Observability | `monitoring` | Prometheus, Grafana | prometheus 9090 · grafana 3000 |
+| Observability | `otel` | OTel Collector | grpc 4327 · http 4328 |
 | Email | `mailpit` | Mailpit | main 1025 · ui 8025 |
+| Workflows | `airflow` | Airflow | main 8093 |
+| Workflows | `inngest` | Inngest Dev Server | main 8288 |
+| Workflows | `maestro` | Maestro, Maestro DB (built from source on first start) | main 8094 |
+| Workflows | `n8n` | n8n | main 5678 |
+| Workflows | `prefect` | Prefect | main 4200 |
 | Workflows | `temporal` | Temporal, Temporal DB, Temporal UI | main 7233 · ui 8233 |
 
 Nothing is installed by default. A fresh workspace is just the console.

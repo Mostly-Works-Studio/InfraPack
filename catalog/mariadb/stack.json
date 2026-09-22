@@ -1,0 +1,43 @@
+{
+  "stack": "mariadb",
+  "label": "MariaDB",
+  "blurb": "MySQL-compatible relational database · Adminer as its web UI",
+  "category": "database",
+  "services": [
+    {
+      "name": "mariadb",
+      "label": "MariaDB",
+      "desc": "MariaDB {MARIADB_VERSION}",
+      "facts": [
+        {"label": "Host", "value": "localhost:{MARIADB_PORT}", "copy": true},
+        {"label": "Database", "value": "{MARIADB_DATABASE}", "copy": true},
+        {"label": "User", "value": "{MARIADB_USER}", "copy": true},
+        {"label": "Password", "value": "{MARIADB_PASSWORD}", "copy": true, "secret": true},
+        {"label": "Root password", "value": "{MARIADB_ROOT_PASSWORD}", "copy": true, "secret": true},
+        {"label": "URL", "value": "mysql://{MARIADB_USER}:{MARIADB_PASSWORD}@localhost:{MARIADB_PORT}/{MARIADB_DATABASE}", "copy": true, "secret": true},
+        {"label": "In-network", "value": "mariadb:3306", "copy": true}
+      ]
+    },
+    {
+      "name": "mariadb-ui",
+      "label": "Adminer",
+      "ui": true,
+      "desc": "Lightweight SQL client in the browser",
+      "link": "http://localhost:{MARIADB_UI_PORT}",
+      "facts": [
+        {"label": "Server", "value": "mariadb (pre-filled)"},
+        {"label": "Sign-in", "value": "{MARIADB_USER} / {MARIADB_PASSWORD}", "copy": true, "secret": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "MARIADB_PORT", "label": "Port", "type": "port", "group": "MariaDB"},
+    {"key": "MARIADB_DATABASE", "label": "Database", "type": "text", "group": "MariaDB", "note": "applied on first start only"},
+    {"key": "MARIADB_USER", "label": "User", "type": "text", "group": "MariaDB", "note": "applied on first start only"},
+    {"key": "MARIADB_PASSWORD", "label": "Password", "type": "secret", "group": "MariaDB", "note": "applied on first start only"},
+    {"key": "MARIADB_ROOT_PASSWORD", "label": "Root password", "type": "secret", "group": "MariaDB", "note": "applied on first start only"},
+    {"key": "MARIADB_VERSION", "label": "Image tag", "type": "text", "group": "MariaDB"},
+    {"key": "MARIADB_UI_PORT", "label": "Port", "type": "port", "group": "Adminer"},
+    {"key": "MARIADB_UI_VERSION", "label": "Image tag", "type": "text", "group": "Adminer"}
+  ]
+}

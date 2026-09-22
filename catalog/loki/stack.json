@@ -1,0 +1,23 @@
+{
+  "stack": "loki",
+  "label": "Loki",
+  "blurb": "Log aggregation · push logs over HTTP · query in Grafana (monitoring entry is pre-wired)",
+  "category": "observability",
+  "services": [
+    {
+      "name": "loki",
+      "label": "Loki",
+      "desc": "Loki {LOKI_VERSION} · single binary, filesystem storage",
+      "facts": [
+        {"label": "URL", "value": "http://localhost:{LOKI_PORT}", "copy": true},
+        {"label": "Push endpoint", "value": "http://localhost:{LOKI_PORT}/loki/api/v1/push", "copy": true},
+        {"label": "In-network", "value": "http://loki:3100", "copy": true},
+        {"label": "Grafana", "value": "install 'monitoring' — its Grafana already has a Loki datasource"}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "LOKI_PORT", "label": "Port", "type": "port", "group": "Loki"},
+    {"key": "LOKI_VERSION", "label": "Image tag", "type": "text", "group": "Loki"}
+  ]
+}
