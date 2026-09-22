@@ -1095,10 +1095,24 @@ docker_set_memory_mb() {           # apply a cap and restart the engine
       else
         sed -E "s/^\{/{\"MemoryMiB\": $mb, /" "$DD_SETTINGS" > "$tmp"
       fi
-      [[ "$DRY_RUN" == 1 ]] && { echo "would write MemoryMiB=$mb to $DD_SETTINGS and restart Docker Desktop"; rm -f "$tmp"; return 0; }
-      cp "$DD_SETTINGS" "$DD_SETTINGS.infrapack-backup" && mv "$tmp" "$DD_SETTINGS"
-      info "restarting Docker Desktop with $(gib "$mb") GiB (running techs stop; the console comes back by itself)"
-      docker desktop restart >/dev/null 2>&1 || warn "could not restart Docker Desktop automatically — quit and reopen it"
+      [[ "$DRY_RUN" == 1 ]] && { echo "would stop Docker Desktop, write MemoryMiB=$mb to $DD_SETTINGS, start it again"; rm -f "$tmp"; return 0; }
+      # Docker Desktop writes its in-memory settings back to disk on shutdown,
+      # so the file can only be changed while it is fully stopped.
+      info "stopping Docker Desktop (running techs stop; the console comes back by itself)"
+      docker desktop stop >/dev/null 2>&1 || die "could not stop Docker Desktop"
+      local i=0; while docker info >/dev/null 2>&1 && [[ $i -lt 60 ]]; do sleep 1; i=$((i+1)); done
+      sleep 2
+      cp "$DD_SETTINGS" "$DD_SETTINGS.infrapack-backup"
+      if grep -q '"MemoryMiB"' "$DD_SETTINGS"; then
+        sed -E "s/\"MemoryMiB\" *: *[0-9]+/\"MemoryMiB\": $mb/" "$DD_SETTINGS" > "$tmp"
+      else
+        sed -E "s/^\{/{\"MemoryMiB\": $mb, /" "$DD_SETTINGS" > "$tmp"
+      fi
+      mv "$tmp" "$DD_SETTINGS"
+      info "starting Docker Desktop with $(gib "$mb") GiB"
+      docker desktop start >/dev/null 2>&1 || warn "could not start Docker Desktop automatically — open it from Applications"
+      i=0; while ! docker info >/dev/null 2>&1 && [[ $i -lt 90 ]]; do sleep 2; i=$((i+2)); done
+      docker info >/dev/null 2>&1 && ok "Docker is back with $(gib "$(vm_mem_mb)") GiB" || warn "Docker has not come back yet"
       ;;
     *colima*|*Colima*)
       command -v colima >/dev/null || die "colima CLI not found"

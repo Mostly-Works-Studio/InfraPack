@@ -37,11 +37,16 @@ case "$action" in
   set-memory)
     S="$HOME/Library/Group Containers/group.com.docker/settings-store.json"
     if [[ "$arg" =~ ^[0-9]+$ && "$arg" -ge 1024 && -f "$S" ]]; then
-      log "setting MemoryMiB=$arg"
+      # Docker Desktop rewrites the file from memory on shutdown: stop, edit, start.
+      log "stopping Docker Desktop to set MemoryMiB=$arg"
+      "$DOCKER" desktop stop >>"$A/log" 2>&1
+      i=0; while "$DOCKER" info >/dev/null 2>&1 && [[ $i -lt 60 ]]; do sleep 1; i=$((i+1)); done
+      sleep 2
       cp "$S" "$S.infrapack-backup"
       if grep -q '"MemoryMiB"' "$S"; then sed -i '' -E "s/\"MemoryMiB\" *: *[0-9]+/\"MemoryMiB\": $arg/" "$S"
       else sed -i '' -E "s/^\{/{\"MemoryMiB\": $arg, /" "$S"; fi
-      if "$DOCKER" desktop restart >>"$A/log" 2>&1; then say ok "Docker Desktop restarted with $((arg / 1024)) GiB"; else say error "restart failed"; fi
+      log "wrote MemoryMiB=$arg; starting Docker Desktop"
+      if "$DOCKER" desktop start >>"$A/log" 2>&1; then say ok "Docker Desktop restarted with $((arg / 1024)) GiB"; else say error "start failed — open Docker Desktop by hand"; fi
     else
       log "bad set-memory argument: $arg"; say error "bad memory value"
     fi ;;
