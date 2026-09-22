@@ -538,6 +538,7 @@ cmd_up() {
     dc up -d --remove-orphans "${svcs[@]}" || die "start failed — see the output above (infrapack logs <service> for details)"
   fi
   for stack in ${stacks[@]+"${stacks[@]}"}; do run_hook "$stack" post-up; done
+  first_run_extras
   echo
   cmd_status ${stacks[@]+"${stacks[@]}"}
   [[ ${#stacks[@]} -gt 0 ]] && { echo; cmd_urls "${stacks[@]}"; }
@@ -788,6 +789,7 @@ finish_install() {
   run_hook "$name" post-install
   ok "$name installed"
   mem_hint
+  [[ "$OS" == Linux && -e "$INFRAPACK_HOME/.app-installed" ]] && cmd_app install >/dev/null 2>&1 || true
   if [[ $start -eq 1 ]]; then
     if ! cmd_up "$name"; then
       warn "$name did not start — removing it again (fix the definition and retry)"
@@ -858,6 +860,7 @@ cmd_uninstall() {
       || die "could not remove $STACKS_DIR/$name — remove it by hand (sudo rm -rf)"
   fi
   claims_clear_tech "$name"
+  [[ "$OS" == Linux && -e "$INFRAPACK_HOME/.app-installed" && "$IN_CONTAINER" != 1 ]] && cmd_app install >/dev/null 2>&1 || true
   if [[ $purge -eq 1 ]]; then
     local v
     for v in $(docker volume ls -q --filter "name=^${PROJECT}_${name}-" 2>/dev/null); do
@@ -1059,7 +1062,7 @@ EOF
           touch "$app"    # nudge Finder / Launch Services to pick up the icon
           ok "$app installed — find \"$APP_NAME\" in Spotlight or Launchpad, drag it to the Dock"
           printf '   it opens %s in your default browser (Arc, Chrome, Safari…)\n' "$(console_url)" ;;
-        uninstall) rm -rf "$app"; ok "$app removed" ;;
+        uninstall) rm -rf "$app"; printf 'no\n' > "$INFRAPACK_HOME/.app-installed"; ok "$app removed" ;;
         *) die "usage: infrapack app [install|uninstall]" ;;
       esac ;;
     Linux)
@@ -1068,7 +1071,10 @@ EOF
         install)
           mkdir -p "$(dirname "$desk")" "$(dirname "$icon")"
           [[ -f "$INFRAPACK_APP/assets/icon.png" ]] && cp "$INFRAPACK_APP/assets/icon.png" "$icon"
-          cat > "$desk" <<EOF
+          local bin="$INFRAPACK_APP/bin/infrapack" actions="open-console;start-all;stop-all;" stack
+          for stack in $(installed_stacks); do actions="$actions start-$stack;stop-$stack;"; done
+          {
+            cat <<EOF
 [Desktop Entry]
 Type=Application
 Name=$APP_NAME
@@ -1077,14 +1083,185 @@ Exec=sh -c 'p=\$(grep -E "^CONSOLE_PORT=" "\${INFRAPACK_HOME:-\$HOME/.infrapack}
 Icon=$icon
 Terminal=false
 Categories=Development;
+Actions=$actions
+
+[Desktop Action open-console]
+Name=Open console
+Exec=$bin open
+
+[Desktop Action start-all]
+Name=Start all techs
+Exec=$bin up
+
+[Desktop Action stop-all]
+Name=Stop all techs
+Exec=$bin down
 EOF
+            for stack in $(installed_stacks); do
+              printf '\n[Desktop Action start-%s]\nName=Start %s\nExec=%s up %s\n' "$stack" "$stack" "$bin" "$stack"
+              printf '\n[Desktop Action stop-%s]\nName=Stop %s\nExec=%s down %s\n' "$stack" "$stack" "$bin" "$stack"
+            done
+          } > "$desk"
           command -v update-desktop-database >/dev/null && update-desktop-database "$(dirname "$desk")" >/dev/null 2>&1 || true
           ok "$desk installed — \"$APP_NAME\" is in your app launcher" ;;
-        uninstall) rm -f "$desk" "$icon"; ok "launcher entry removed" ;;
+        uninstall) rm -f "$desk" "$icon"; printf 'no\n' > "$INFRAPACK_HOME/.app-installed"; ok "launcher entry removed" ;;
         *) die "usage: infrapack app [install|uninstall]" ;;
       esac ;;
     *) die "infrapack app is for macOS and Linux" ;;
   esac
+}
+
+# A macOS menu bar app: installed techs with on/off toggles and "Open" links,
+# built locally from assets/menubar/InfraPackMenu.swift with the system
+# compiler (Xcode Command Line Tools), so nothing unsigned is downloaded.
+MENUBAR_NAME="InfraPack Menu"
+cmd_menubar() {
+  [[ "$OS" == Darwin ]] || die "the menu bar app is macOS-only for now (Linux desktops have no common tray API)"
+  local sub="${1:-install}" app="$HOME/Applications/$MENUBAR_NAME.app"
+  case "$sub" in
+    install)
+      command -v swiftc >/dev/null || die "swiftc not found — install the Xcode Command Line Tools: xcode-select --install"
+      local stage="$INFRAPACK_HOME/.$MENUBAR_NAME.app"; rm -rf "$stage"
+      mkdir -p "$stage/Contents/MacOS" "$stage/Contents/Resources"
+      info "compiling the menu bar app (about half a minute the first time)"
+      if ! swiftc -O -o "$stage/Contents/MacOS/$MENUBAR_NAME" "$INFRAPACK_APP/assets/menubar/InfraPackMenu.swift" -framework Cocoa 2>"$INFRAPACK_HOME/menubar-build.log"; then
+        die "compile failed — see $INFRAPACK_HOME/menubar-build.log"
+      fi
+      cat > "$stage/Contents/Info.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleName</key><string>$MENUBAR_NAME</string>
+  <key>CFBundleDisplayName</key><string>$MENUBAR_NAME</string>
+  <key>CFBundleIdentifier</key><string>studio.mostlyworks.infrapack.menubar</string>
+  <key>CFBundleVersion</key><string>$VERSION</string>
+  <key>CFBundleShortVersionString</key><string>$VERSION</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleExecutable</key><string>$MENUBAR_NAME</string>
+  <key>CFBundleIconFile</key><string>InfraPack</string>
+  <key>LSMinimumSystemVersion</key><string>12.0</string>
+  <key>LSUIElement</key><true/>
+  <key>NSHighResolutionCapable</key><true/>
+</dict></plist>
+EOF
+      sips -s format icns "$INFRAPACK_APP/assets/icon.png" --out "$stage/Contents/Resources/InfraPack.icns" >/dev/null 2>&1 || true
+      codesign --force --sign - "$stage" >/dev/null 2>&1 || true
+      pkill -x "$MENUBAR_NAME" >/dev/null 2>&1 || true
+      rm -rf "$app"; mkdir -p "$(dirname "$app")"
+      mv "$stage" "$app" || die "could not place $app"
+      touch "$INFRAPACK_HOME/.menubar-installed"
+      if [[ "${2:-}" == "--login" || "${MENUBAR_LOGIN:-}" == 1 ]]; then
+        osascript -e "tell application \"System Events\" to make login item at end with properties {path:\"$app\", hidden:true}" >/dev/null 2>&1 \
+          && ok "will start at login" || warn "could not add a login item"
+      fi
+      open -g "$app" && ok "$MENUBAR_NAME is running — look for the InfraPack icon in the menu bar"
+      printf '   %sinfrapack menubar install --login%s   also starts it at login\n' "$DIM" "$N" ;;
+    uninstall)
+      pkill -x "$MENUBAR_NAME" >/dev/null 2>&1 || true
+      osascript -e "tell application \"System Events\" to delete login item \"$MENUBAR_NAME\"" >/dev/null 2>&1 || true
+      rm -rf "$app"; printf 'no\n' > "$INFRAPACK_HOME/.menubar-installed"
+      ok "menu bar app removed (it will not be re-created automatically)" ;;
+    status)
+      [[ -d "$app" ]] && ok "installed at $app" || warn "not installed — infrapack menubar install"
+      pgrep -x "$MENUBAR_NAME" >/dev/null && ok "running" || printf '  not running — open -a "%s"\n' "$MENUBAR_NAME" ;;
+    *) die "usage: infrapack menubar [install [--login]|uninstall|status]" ;;
+  esac
+}
+
+# First `up` on a machine: create the launcher app (and, on macOS with the
+# compiler present, the menu bar app in the background). Once only; an explicit
+# uninstall leaves a marker so it is not re-created.
+first_run_extras() {
+  [[ "$IN_CONTAINER" == 1 ]] && return 0
+  if [[ ! -e "$INFRAPACK_HOME/.app-installed" ]]; then
+    case "$OS" in Darwin|Linux) cmd_app install >/dev/null 2>&1 && touch "$INFRAPACK_HOME/.app-installed" \
+      && ok "added an InfraPack launcher app ($( [[ "$OS" == Darwin ]] && echo 'Spotlight / Launchpad' || echo 'app menu' )) — it opens the console" ;; esac
+  fi
+  if [[ "$OS" == Darwin && ! -e "$INFRAPACK_HOME/.menubar-installed" ]] && command -v swiftc >/dev/null; then
+    touch "$INFRAPACK_HOME/.menubar-installed"
+    info "building the menu bar app in the background (toggle techs from the top bar); 'infrapack menubar uninstall' removes it"
+    ( INFRAPACK_HOME="$INFRAPACK_HOME" INFRAPACK_APP="$INFRAPACK_APP" nohup bash "$INFRAPACK_APP/bin/infrapack" menubar install >"$INFRAPACK_HOME/menubar-install.log" 2>&1 & )
+  fi
+  return 0
+}
+
+# A macOS menu bar app: installed techs with on/off toggles and "Open" links,
+# built locally from assets/menubar/InfraPackMenu.swift with the system
+# compiler (Xcode Command Line Tools), so nothing unsigned is downloaded.
+MENUBAR_NAME="InfraPack Menu"
+cmd_menubar() {
+  [[ "$OS" == Darwin ]] || die "the menu bar app is macOS-only; on Linux, right-click the InfraPack launcher for the same actions"
+  local sub="${1:-install}" app="$HOME/Applications/$MENUBAR_NAME.app"
+  case "$sub" in
+    install)
+      command -v swiftc >/dev/null || die "swiftc not found — install the Xcode Command Line Tools: xcode-select --install"
+      local stage="$INFRAPACK_HOME/.$MENUBAR_NAME.app"; rm -rf "$stage"
+      mkdir -p "$stage/Contents/MacOS" "$stage/Contents/Resources"
+      info "compiling the menu bar app (about half a minute)"
+      if ! swiftc -O -o "$stage/Contents/MacOS/$MENUBAR_NAME" "$INFRAPACK_APP/assets/menubar/InfraPackMenu.swift" -framework Cocoa 2>"$INFRAPACK_HOME/menubar-build.log"; then
+        die "compile failed — see $INFRAPACK_HOME/menubar-build.log"
+      fi
+      cat > "$stage/Contents/Info.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleName</key><string>$MENUBAR_NAME</string>
+  <key>CFBundleDisplayName</key><string>$MENUBAR_NAME</string>
+  <key>CFBundleIdentifier</key><string>studio.mostlyworks.infrapack.menubar</string>
+  <key>CFBundleVersion</key><string>$VERSION</string>
+  <key>CFBundleShortVersionString</key><string>$VERSION</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleExecutable</key><string>$MENUBAR_NAME</string>
+  <key>CFBundleIconFile</key><string>InfraPack</string>
+  <key>LSMinimumSystemVersion</key><string>12.0</string>
+  <key>LSUIElement</key><true/>
+  <key>NSHighResolutionCapable</key><true/>
+</dict></plist>
+EOF
+      sips -s format icns "$INFRAPACK_APP/assets/icon.png" --out "$stage/Contents/Resources/InfraPack.icns" >/dev/null 2>&1 || true
+      codesign --force --sign - "$stage" >/dev/null 2>&1 || true
+      pkill -x "$MENUBAR_NAME" >/dev/null 2>&1 || true
+      rm -rf "$app"; mkdir -p "$(dirname "$app")"
+      mv "$stage" "$app" || die "could not place $app"
+      printf 'yes\n' > "$INFRAPACK_HOME/.menubar-installed"
+      if [[ "${2:-}" == "--login" || "${MENUBAR_LOGIN:-}" == 1 ]]; then
+        osascript -e "tell application \"System Events\" to make login item at end with properties {path:\"$app\", hidden:true}" >/dev/null 2>&1 \
+          && ok "will start at login" || warn "could not add a login item"
+      fi
+      open -g "$app" && ok "$MENUBAR_NAME is running — the InfraPack icon in the menu bar toggles techs and opens their UIs"
+      printf '   %sinfrapack menubar install --login%s starts it at login · %sinfrapack menubar uninstall%s removes it\n' "$DIM" "$N" "$DIM" "$N" ;;
+    uninstall)
+      pkill -x "$MENUBAR_NAME" >/dev/null 2>&1 || true
+      osascript -e "tell application \"System Events\" to delete login item \"$MENUBAR_NAME\"" >/dev/null 2>&1 || true
+      rm -rf "$app"; printf 'no\n' > "$INFRAPACK_HOME/.menubar-installed"
+      ok "menu bar app removed (it will not be re-created automatically)" ;;
+    status)
+      [[ -d "$app" ]] && ok "installed at $app" || warn "not installed — infrapack menubar install"
+      pgrep -x "$MENUBAR_NAME" >/dev/null && ok "running" || printf '  not running — open -a "%s"\n' "$MENUBAR_NAME" ;;
+    *) die "usage: infrapack menubar [install [--login]|uninstall|status]" ;;
+  esac
+}
+
+# The apps are created once, on the first `infrapack` command after installing
+# (Homebrew cannot write to ~/Applications itself; the curl installer calls the
+# same commands directly). An explicit uninstall leaves a "no" marker.
+first_run_extras() {
+  [[ "$IN_CONTAINER" == 1 || "${INFRAPACK_NO_EXTRAS:-}" == 1 ]] && return 0
+  if [[ ! -e "$INFRAPACK_HOME/.app-installed" ]]; then
+    case "$OS" in Darwin|Linux)
+      if cmd_app install >/dev/null 2>&1; then
+        printf 'yes\n' > "$INFRAPACK_HOME/.app-installed"
+        ok "added an InfraPack launcher app ($( [[ "$OS" == Darwin ]] && echo 'Spotlight, Launchpad, Dock' || echo 'app menu; right-click for quick actions' )) — it opens the console"
+      fi ;;
+    esac
+  fi
+  if [[ "$OS" == Darwin && ! -e "$INFRAPACK_HOME/.menubar-installed" ]] && command -v swiftc >/dev/null; then
+    printf 'pending\n' > "$INFRAPACK_HOME/.menubar-installed"
+    info "building the InfraPack menu bar app in the background — it appears in the top bar in about a minute ('infrapack menubar uninstall' removes it)"
+    ( nohup env INFRAPACK_HOME="$INFRAPACK_HOME" INFRAPACK_APP="$INFRAPACK_APP" INFRAPACK_NO_EXTRAS=1 \
+        bash "$INFRAPACK_APP/bin/infrapack" menubar install >"$INFRAPACK_HOME/menubar-install.log" 2>&1 & )
+  fi
+  return 0
 }
 
 # ------------------------------------------------------------------- misc --
@@ -1371,7 +1548,9 @@ ${B}Everyday${N}
   logs [service]       tail logs
   open                 open the web console
   console              where the console is, and how to reach it without typing
-  app install          a launcher app (Spotlight / Dock / app menu) that opens the console
+  app [un]install      launcher app (Spotlight / Dock; Linux app menu with quick actions) — created automatically
+  menubar [un]install  macOS menu bar: toggle techs, open their UIs — created automatically
+  menubar install      macOS menu bar: toggle techs and open their UIs from the top bar
 
 ${B}Techs${N}
   catalog              what can be installed
@@ -1432,6 +1611,7 @@ esac
 
 need_docker
 ensure_workspace
+first_run_extras
 
 case "$cmd" in
   up)                 cmd_up "$@" ;;
@@ -1445,6 +1625,8 @@ case "$cmd" in
   open)               cmd_open ;;
   console)            cmd_console "$@" ;;
   app)                cmd_app "$@" ;;
+  menubar)            cmd_menubar "$@" ;;
+  menubar)            cmd_menubar "$@" ;;
   catalog|search)     cmd_catalog ;;
   install)            cmd_install "$@" ;;
   uninstall|remove)   cmd_uninstall "$@" ;;

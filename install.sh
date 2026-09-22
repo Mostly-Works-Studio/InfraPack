@@ -107,6 +107,13 @@ if command -v docker >/dev/null && docker info >/dev/null 2>&1; then
   docker pull -q "ghcr.io/mostly-works-studio/infrapack:$VERSION" >/dev/null 2>&1 \
     || warn "could not pull the console image now; it will be fetched on first 'infrapack up'"
   "$INSTALL_DIR/bin/infrapack" doctor || true
+  # launcher app (+ menu bar app on macOS when the compiler is there); silent, once
+  INFRAPACK_NO_EXTRAS=1 "$INSTALL_DIR/bin/infrapack" app install >/dev/null 2>&1 && printf 'yes\n' > "$HOME/.infrapack/.app-installed" \
+    && ok "InfraPack launcher app added$( [[ "$OS" == Darwin ]] && echo ' (Spotlight, Launchpad, Dock)' || echo ' (app menu; right-click for quick actions)')"
+  if [[ "$OS" == Darwin ]] && command -v swiftc >/dev/null; then
+    info "building the menu bar app (about half a minute)"
+    INFRAPACK_NO_EXTRAS=1 "$INSTALL_DIR/bin/infrapack" menubar install 2>&1 | grep -E '^  ok' || warn "menu bar app not built — run 'infrapack menubar install' later"
+  fi
 fi
 
 echo
@@ -114,4 +121,3 @@ printf '%sNext%s\n' "$B" "$N"
 printf '  infrapack catalog          # what can be installed\n'
 printf '  infrapack install postgres # add one and start it\n'
 printf '  infrapack open             # the web console\n'
-printf '  infrapack app install      # an InfraPack app in Spotlight / the Dock that opens the console\n'

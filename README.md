@@ -87,13 +87,22 @@ Conventions: the core service is named after the tech, its web UI is
 
 `infrapack open` opens it from any terminal. It is bound to loopback only,
 because it controls Docker, and lives at <http://localhost:1717>
-(`http://infrapack.localhost:1717` works too). Never type that again:
-`infrapack app install` creates a small **InfraPack** launcher app (in
-`~/Applications` on macOS, the app menu on Linux) that opens the console in
-your default browser, whatever it is, Arc included; find it in Spotlight or
-drag it to the Dock. Browsers that install web apps (Safari's **Add to Dock**,
-Chrome and Edge's **Install app**) also work, since the console ships a
-web-app manifest with the InfraPack icon.
+(`http://infrapack.localhost:1717` works too). You never have to type that: the first `infrapack` command after installing
+creates two small apps for you (the curl installer does it right away):
+
+- **InfraPack** launcher: in Spotlight, Launchpad and the Dock on macOS, in the
+  app menu on Linux. It opens the console in your default browser, whatever
+  it is, Arc included. On Linux, right-click it for quick actions: open the
+  console, start or stop every tech, or any single installed tech.
+- **InfraPack Menu** (macOS): an icon in the menu bar listing the installed
+  techs with on/off toggles and "Open" entries for their UIs. It is compiled
+  on your machine from `assets/menubar/InfraPackMenu.swift` with the Xcode
+  Command Line Tools compiler, so nothing unsigned is downloaded.
+  `infrapack menubar install --login` makes it start at login.
+
+`infrapack app uninstall` and `infrapack menubar uninstall` remove them for
+good. Browsers that install web apps (Safari's **Add to Dock**, Chrome and
+Edge's **Install app**) also work, since the console ships a web-app manifest.
 `infrapack console` tells you where it is; `infrapack console port N` moves
 it, and `infrapack console alias` puts it on port 80 (<http://localhost>)
 when that port is free on your machine.
