@@ -972,7 +972,7 @@ async function save(){
   try{
     const r = await api("/api/save", {values: dirty, apply: true});
     if(r.consolePort){
-      const url = location.protocol + "//" + location.hostname + ":" + r.consolePort;
+      const url = location.protocol + "//" + location.hostname + (r.consolePort === "80" ? "" : ":" + r.consolePort);
       toast("console is moving to " + url + " …", "ok");
       setTimeout(() => location.assign(url), 3000);
       return;

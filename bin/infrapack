@@ -542,7 +542,7 @@ cmd_up() {
   cmd_status ${stacks[@]+"${stacks[@]}"}
   [[ ${#stacks[@]} -gt 0 ]] && { echo; cmd_urls "${stacks[@]}"; }
   echo
-  printf '%sConsole%s  http://localhost:%s\n' "$B" "$N" "$CONSOLE_PORT"
+  printf '%sConsole%s  %s\n' "$B" "$N" "$(console_url)"
 }
 
 cmd_down() {
@@ -956,9 +956,55 @@ cmd_apply() {
   return 0
 }
 
+# ---------------------------------------------------------------- console --
+console_url() { if [[ "$CONSOLE_PORT" == 80 ]]; then echo "http://localhost"; else echo "http://localhost:$CONSOLE_PORT"; fi; }
+port_holder() {                    # who listens on a host port (empty if free)
+  command -v lsof >/dev/null || return 0
+  local pid; pid="$(lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
+  [[ -n "$pid" ]] && ps -o comm= -p "$pid" 2>/dev/null || true
+}
+
+# `infrapack console` — where the console is, and how to give it a short address.
+cmd_console() {
+  local sub="${1:-}" arg="${2:-}"
+  case "$sub" in
+    "")
+      printf '%sConsole%s  %s' "$B" "$N" "$(console_url)"
+      running console && printf '  %s(running)%s\n' "$G" "$N" || printf '  %s(stopped — infrapack up)%s\n' "$DIM" "$N"
+      if [[ "$CONSOLE_PORT" == 80 ]]; then
+        printf '  also   http://infrapack.localhost   (Chrome, Firefox, Edge resolve *.localhost by themselves)\n'
+      else
+        printf '  %sinfrapack console alias%s   moves it to port 80: http://localhost and http://infrapack.localhost, nothing to remember\n' "$B" "$N"
+      fi
+      printf '  %sinfrapack open%s            opens it from any terminal\n' "$B" "$N" ;;
+    alias) cmd_console port 80 ;;
+    port)
+      [[ "$arg" =~ ^[0-9]+$ && $arg -ge 1 && $arg -le 65535 ]] || die "usage: infrapack console port <1-65535>   (80 = no port to type)"
+      [[ "$arg" == "$CONSOLE_PORT" ]] && { ok "the console is already on port $arg — $(console_url)"; return 0; }
+      local who; who="$(port_holder "$arg")"
+      case "$who" in
+        ""|*docker*|*com.docker*|*vpnkit*|*OrbStack*|*colima*|*qemu*|*limactl*) ;;
+        *) die "port $arg is held by $who on this machine — stop it, or pick another port" ;;
+      esac
+      local clash; clash="$(ports_in_use console | awk -F'\t' -v p="$arg" '$1 == p && !f { print $2; f = 1 }')"
+      [[ -z "$clash" ]] || die "port $arg is already used by $clash"
+      env_set CONSOLE_PORT "$arg"; CONSOLE_PORT="$arg"
+      info "moving the console to port $arg"
+      dc up -d console >/dev/null
+      local i=0; while [[ $i -lt 20 ]] && ! curl -fsS "$(console_url)/healthz" >/dev/null 2>&1; do sleep 1; i=$((i+1)); done
+      if curl -fsS "$(console_url)/healthz" >/dev/null 2>&1; then
+        ok "console is at $(console_url)"
+        [[ "$arg" == 80 ]] && printf '   also http://infrapack.localhost — bookmark either, or "Add to Dock / Install app" from the browser menu\n'
+      else
+        warn "the console did not answer at $(console_url) yet — give it a few seconds, or check 'infrapack logs console'"
+      fi ;;
+    *) die "usage: infrapack console [alias | port <n>]" ;;
+  esac
+}
+
 # ------------------------------------------------------------------- misc --
 cmd_open() {
-  local url="http://localhost:$CONSOLE_PORT"
+  local url; url="$(console_url)"
   running console || cmd_up >/dev/null
   case "$OS" in
     Darwin) open "$url" ;;
@@ -986,9 +1032,9 @@ cmd_doctor() {
   fi
   _label="workspace writable";                        check test -w "$INFRAPACK_HOME"
   _label="console image present ($(console_image))"; check docker image inspect "$(console_image)"
-  _label="console running on :$CONSOLE_PORT";         check running console
+  _label="console running at $(console_url)";       check running console
   if running console && command -v curl >/dev/null; then
-    _label="console answers";                         check curl -fsS "http://localhost:$CONSOLE_PORT/healthz"
+    _label="console answers";                         check curl -fsS "$(console_url)/healthz"
   fi
   case "$OS" in Darwin)
     _label="host agent (Docker restart from the console)"; check test -f "$INFRAPACK_HOME/installed" ;;
@@ -1239,6 +1285,7 @@ ${B}Everyday${N}
   urls                 connection strings and UI links
   logs [service]       tail logs
   open                 open the web console
+  console [alias]      where the console is; "alias" moves it to http://localhost (port 80)
 
 ${B}Techs${N}
   catalog              what can be installed
@@ -1271,7 +1318,7 @@ ${B}System${N}
   rebuild              rebuild the console image from source (developers)
   version
 
-Workspace: $INFRAPACK_HOME   Console: http://localhost:${CONSOLE_PORT:-7070}
+Workspace: $INFRAPACK_HOME   Console: $(console_url 2>/dev/null || echo "http://localhost:${CONSOLE_PORT:-7070}")
 EOF
 }
 
@@ -1310,6 +1357,7 @@ case "$cmd" in
   pull)               cmd_pull "$@" ;;
   reset)              cmd_reset "$@" ;;
   open)               cmd_open ;;
+  console)            cmd_console "$@" ;;
   catalog|search)     cmd_catalog ;;
   install)            cmd_install "$@" ;;
   uninstall|remove)   cmd_uninstall "$@" ;;

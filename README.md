@@ -85,8 +85,13 @@ Conventions: the core service is named after the tech, its web UI is
 
 ## The console
 
-`infrapack open` → <http://localhost:7070>, bound to loopback only because it
-controls Docker.
+`infrapack open` opens it from any terminal. It is bound to loopback only,
+because it controls Docker. By default it is at <http://localhost:7070>;
+`infrapack console alias` moves it to port 80 so the address is simply
+<http://localhost> or <http://infrapack.localhost> (browsers resolve
+`*.localhost` to your machine with nothing to configure). Bookmark it, or use
+the browser's "Add to Dock" / "Install app" so it lives next to your other
+apps. `infrapack console` tells you where it currently is.
 
 - **Installed** — every service with state, health, live CPU/memory, links and
   credentials (masked until revealed, copy buttons everywhere); per-service

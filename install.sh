@@ -114,3 +114,4 @@ printf '%sNext%s\n' "$B" "$N"
 printf '  infrapack catalog          # what can be installed\n'
 printf '  infrapack install postgres # add one and start it\n'
 printf '  infrapack open             # the web console\n'
+printf '  infrapack console alias    # put it on http://localhost — nothing to remember\n'
