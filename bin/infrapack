@@ -166,7 +166,7 @@ TZ=UTC
 
 # --- console ---
 # The web console (loopback only). Comes back whenever Docker starts.
-CONSOLE_PORT=7070
+CONSOLE_PORT=1717
 CONSOLE_RESTART=unless-stopped
 # Installed techs do NOT auto-start with Docker; set to unless-stopped if
 # you would rather have whatever was running come back after a reboot.
@@ -176,7 +176,7 @@ EOF
   fi
   # shellcheck disable=SC1090
   set -a; source "$ENV_FILE"; set +a
-  CONSOLE_PORT="${CONSOLE_PORT:-7070}"
+  CONSOLE_PORT="${CONSOLE_PORT:-1717}"
 
   # Docker's socket path differs per engine (Desktop, OrbStack, Colima...).
   if [[ "$IN_CONTAINER" != 1 && -z "${DOCKER_SOCK:-}" ]]; then
@@ -974,7 +974,8 @@ cmd_console() {
       if [[ "$CONSOLE_PORT" == 80 ]]; then
         printf '  also   http://infrapack.localhost   (Chrome, Firefox, Edge resolve *.localhost by themselves)\n'
       else
-        printf '  %sinfrapack console alias%s   moves it to port 80: http://localhost and http://infrapack.localhost, nothing to remember\n' "$B" "$N"
+        printf '  never type it again: open it once, then %sAdd to Dock%s (Safari) or %sInstall app%s (Chrome, Edge)\n' "$B" "$N" "$B" "$N"
+        printf '  %sinfrapack console alias%s   puts it on port 80 (http://localhost) if that port is free here\n' "$B" "$N"
       fi
       printf '  %sinfrapack open%s            opens it from any terminal\n' "$B" "$N" ;;
     alias) cmd_console port 80 ;;
@@ -1285,7 +1286,7 @@ ${B}Everyday${N}
   urls                 connection strings and UI links
   logs [service]       tail logs
   open                 open the web console
-  console [alias]      where the console is; "alias" moves it to http://localhost (port 80)
+  console              where the console is, and how to reach it without typing
 
 ${B}Techs${N}
   catalog              what can be installed
@@ -1318,7 +1319,7 @@ ${B}System${N}
   rebuild              rebuild the console image from source (developers)
   version
 
-Workspace: $INFRAPACK_HOME   Console: $(console_url 2>/dev/null || echo "http://localhost:${CONSOLE_PORT:-7070}")
+Workspace: $INFRAPACK_HOME   Console: $(console_url 2>/dev/null || echo "http://localhost:${CONSOLE_PORT:-1717}")
 EOF
 }
 

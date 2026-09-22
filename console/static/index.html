@@ -5,7 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>InfraPack</title>
 <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png">
-<link rel="apple-touch-icon" href="/icon.png">
+<link rel="apple-touch-icon" href="/icon-512.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#141a2a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="InfraPack">
 <style>
   :root{
     --nav:#141a2a; --nav-2:#1d2538; --nav-ink:#e9edf7; --nav-muted:#7f8aa8;
@@ -303,6 +307,8 @@
         Restart Docker
       </button>
       <div class="rail-note">console always on · <b>techs on demand</b></div>
+      <div class="rail-note" id="installHint" style="margin-top:8px">
+        Tired of typing the address? Use the browser menu:<br><b>Add to Dock</b> (Safari) · <b>Install app</b> (Chrome, Edge)</div>
     </div>
   </aside>
 
@@ -1128,6 +1134,7 @@ function startPoll(){ stopPoll(); polling = setInterval(load, 4000); }
 function stopPoll(){ if(polling) clearInterval(polling); polling = null; }
 
 load().then(() => { startPoll(); if(STATE && !STATE.stacks.length) setView("catalog"); });
+if(window.matchMedia("(display-mode: standalone)").matches || navigator.standalone) $("#installHint").hidden = true;
 loadCatalog();
 document.addEventListener("visibilitychange", () => document.hidden ? stopPoll() : (load(), startPoll()));
 </script>

@@ -46,7 +46,7 @@ jobs:
               for line in (d/'defaults.env').read_text().splitlines():
                   mm = re.match(r'^([A-Z0-9_]+PORT\d*)=(\d+)$', line)
                   if mm: ports[mm.group(2)].append(f"{d.name}:{mm.group(1)}")
-          ports['7070'].append('console')
+          ports['1717'].append('console')
           dupes = {p: v for p, v in ports.items() if len(v) > 1}
           assert not dupes, f"port clashes: {dupes}"
           print("ok:", len(list(pathlib.Path('catalog').iterdir())), "entries")
@@ -96,7 +96,7 @@ jobs:
           infrapack status | grep -E '^(redis|mq) '
           mkdir -p /tmp/proj && printf 'techs:\n  - redis\n' > /tmp/proj/infrapack.yaml
           (cd /tmp/proj && infrapack up -y && infrapack down)
-          curl -fsS localhost:7070/api/state | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["stacks"], d'
+          curl -fsS localhost:1717/api/state | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["stacks"], d'
           infrapack down all
 
   catalog:

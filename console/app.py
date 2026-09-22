@@ -270,7 +270,7 @@ def state_payload():
                "services": s["compose_services"], "hasCommands": s["has_commands"]}
               for s in reg.load_all()]
     return {"services": svc_cards, "fields": field_list, "stacks": stacks,
-            "consolePort": env.get("CONSOLE_PORT", "7070"),
+            "consolePort": env.get("CONSOLE_PORT", "1717"),
             "version": VERSION, "hostOS": HOST_OS, "home": str(HOME),
             "dockerControl": agent_installed() and HOST_OS == "Darwin",
             "agentStatus": agent_status(),
@@ -390,11 +390,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, out)
         if path in ("/", "/index.html"):
             return self._send(200, (STATIC / "index.html").read_bytes(), "text/html; charset=utf-8")
-        if path in ("/icon.png", "/favicon.png", "/logo.png", "/favicon.ico"):
+        if path in ("/icon.png", "/icon-512.png", "/favicon.png", "/logo.png", "/favicon.ico", "/manifest.json"):
             f = STATIC / ("favicon.png" if path == "/favicon.ico" else path.lstrip("/"))
             if f.exists():
                 self.send_response(200)
-                self.send_header("Content-Type", "image/png")
+                self.send_header("Content-Type", "application/manifest+json" if path.endswith(".json") else "image/png")
                 self.send_header("Content-Length", str(f.stat().st_size))
                 self.send_header("Cache-Control", "public, max-age=86400")
                 self.end_headers()

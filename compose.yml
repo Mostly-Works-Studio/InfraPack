@@ -18,7 +18,7 @@ services:
       DOCKER_SOCK: ${DOCKER_SOCK:-/var/run/docker.sock}
     ports:
       # Loopback only: this container can control Docker.
-      - "127.0.0.1:${CONSOLE_PORT:-7070}:8000"
+      - "127.0.0.1:${CONSOLE_PORT:-1717}:8000"
     volumes:
       - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
       # The workspace is mounted at its host path so compose, run from inside
