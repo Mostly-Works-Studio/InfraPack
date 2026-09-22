@@ -877,7 +877,7 @@ ${B}Before opening the PR (catalog: $name)${N}
      would understand, and every setting a person might change
   2. compose.yml: a healthcheck (127.0.0.1, generous start_period), a pinned image tag,
      data in a named volume, default host ports that clash with nothing in the catalog
-  3. defaults.env: every \\${VAR:-default} used above, with a comment for any unusual port
+  3. defaults.env: every \${VAR:-default} used above, with a comment for any unusual port
   4. move $dest/$name into catalog/ in your fork of
      https://github.com/Mostly-Works-Studio/infrapack and run: scripts/test-catalog.sh $name
   5. open the PR — CONTRIBUTING.md has the full checklist. Thank you!
