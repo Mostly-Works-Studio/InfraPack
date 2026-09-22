@@ -9,7 +9,45 @@
 import Cocoa
 import Foundation
 
+/// One tech: name, a small status line, and a switch. Lives inside a menu item as
+/// a custom view, which is what lets the menu stay open when the switch is used.
+final class StackRow: NSView {
+    let name: String
+    private let title = NSTextField(labelWithString: "")
+    private let status = NSTextField(labelWithString: "")
+    private let toggle = NSSwitch()
+    var onToggle: ((String) -> Void)?
+
+    init(name: String, label: String) {
+        self.name = name
+        super.init(frame: NSRect(x: 0, y: 0, width: 300, height: 34))
+        title.stringValue = label
+        title.font = NSFont.menuFont(ofSize: 13)
+        title.frame = NSRect(x: 14, y: 15, width: 220, height: 17)
+        status.font = NSFont.systemFont(ofSize: 10.5)
+        status.textColor = .secondaryLabelColor
+        status.frame = NSRect(x: 14, y: 2, width: 220, height: 13)
+        toggle.controlSize = .small
+        toggle.frame = NSRect(x: 300 - 14 - 32, y: 7, width: 32, height: 20)
+        toggle.target = self
+        toggle.action = #selector(flipped)
+        addSubview(title); addSubview(status); addSubview(toggle)
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    @objc private func flipped() { onToggle?(name) }
+
+    func apply(on: Bool, mixed: Bool, statusText: String, busy: Bool) {
+        let want: NSControl.StateValue = on ? .on : .off
+        if toggle.state != want { toggle.animator().state = want }
+        toggle.isEnabled = !busy
+        status.stringValue = statusText
+        status.textColor = busy ? .tertiaryLabelColor : (mixed ? .systemOrange : .secondaryLabelColor)
+    }
+}
+
 final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
+    private var rows: [String: StackRow] = [:]
     private var statusItem: NSStatusItem!
     private let menu = NSMenu()
     private var state: [String: Any] = [:]
@@ -115,23 +153,28 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    private func stackTitle(_ label: String, name: String, svcs: [[String: Any]]) -> (String, NSControl.StateValue, Bool) {
+    private func applyRow(_ row: StackRow, stack: [String: Any], svcs: [[String: Any]]) {
+        let name = stack["name"] as? String ?? ""
         let up = svcs.filter { ($0["up"] as? Bool) == true }.count
         let starting = svcs.contains { ($0["health"] as? String) == "starting" }
-        let state: NSControl.StateValue = up == 0 ? .off : (up == svcs.count ? .on : .mixed)
-        if busy.contains(name) { return ("\(label) — working…", state, false) }
-        if starting { return ("\(label) — starting", state, true) }
-        return (label, state, true)
+        let unhealthy = svcs.contains { ($0["health"] as? String) == "unhealthy" }
+        var text: String
+        if busy.contains(name) { text = "working…" }
+        else if up == 0 { text = "stopped" }
+        else if starting { text = "starting…" }
+        else if unhealthy { text = "unhealthy" }
+        else if up < svcs.count { text = "\(up) of \(svcs.count) running" }
+        else { text = svcs.count == 1 ? "running" : "running · \(svcs.count) services" }
+        let mb = (stack["memoryMB"] as? Int).map { " · ~\(String(format: "%.1f", Double($0) / 1024)) GiB" } ?? ""
+        row.apply(on: up > 0, mixed: up > 0 && up < svcs.count, statusText: text + (up > 0 ? "" : mb), busy: busy.contains(name))
     }
 
     // update titles / checkmarks / enabled flags of the existing items (safe while the menu is open)
     private func applyState() {
         for it in menu.items {
-            if let name = it.representedObject as? String, let stack = stacks.first(where: { ($0["name"] as? String) == name }) {
-                let (title, state, enabled) = stackTitle(stack["label"] as? String ?? name, name: name, svcs: services(of: name))
-                if it.title != title { it.title = title }
-                if it.state != state { it.state = state }
-                if it.isEnabled != enabled { it.isEnabled = enabled }
+            if let name = it.representedObject as? String, let row = rows[name],
+               let stack = stacks.first(where: { ($0["name"] as? String) == name }) {
+                applyRow(row, stack: stack, svcs: services(of: name))
             } else if let ref = it.representedObject as? [String: String], let svcName = ref["service"] {
                 let up = services.first(where: { ($0["name"] as? String) == svcName }).flatMap { $0["up"] as? Bool } ?? false
                 if it.isEnabled != up { it.isEnabled = up }
@@ -141,6 +184,7 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func rebuild() {
+        rows.removeAll()
         menu.removeAllItems()
         let title = NSMenuItem(title: reachable ? "InfraPack" : "InfraPack — console not running", action: nil, keyEquivalent: "")
         title.isEnabled = false
@@ -163,13 +207,14 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let name = stack["name"] as? String else { continue }
             let label = stack["label"] as? String ?? name
             let svcs = services(of: name)
-            let (title, state, enabled) = stackTitle(label, name: name, svcs: svcs)
-            let toggle = NSMenuItem(title: title, action: #selector(toggleStack(_:)), keyEquivalent: "")
-            toggle.target = self
-            toggle.representedObject = name
-            toggle.state = state
-            toggle.isEnabled = enabled
-            menu.addItem(toggle)
+            let row = StackRow(name: name, label: label)
+            row.onToggle = { [weak self] n in self?.toggleStack(named: n) }
+            rows[name] = row
+            let holder = NSMenuItem(title: label, action: nil, keyEquivalent: "")
+            holder.representedObject = name
+            holder.view = row
+            menu.addItem(holder)
+            applyRow(row, stack: stack, svcs: svcs)
             // "Open …" for every service with a UI; enabled only while it runs (so it can update in place)
             for svc in svcs {
                 if let link = svc["link"] as? String, let svcName = svc["name"] as? String {
@@ -214,8 +259,7 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     @objc private func quit() { NSApp.terminate(nil) }
 
-    @objc private func toggleStack(_ sender: NSMenuItem) {
-        guard let name = sender.representedObject as? String else { return }
+    private func toggleStack(named name: String) {
         let up = services(of: name).contains { ($0["up"] as? Bool) == true }
         busy.insert(name); applyState()
         post("api/action", ["action": up ? "down" : "up", "stacks": [name]]) { self.busy.remove(name); self.applyState() }

@@ -266,7 +266,7 @@ def state_payload():
         card["usage"] = snap["services"].get(card["key"]) if card["up"] else None
     field_list = [{**f, "value": env.get(f["key"], "")} for f in fields()]
     stacks = [{"name": s["stack"], "label": s["label"], "blurb": s["blurb"],
-               "category": s["category"], "custom": s["custom"],
+               "category": s["category"], "custom": s["custom"], "memoryMB": s["memory_mb"],
                "services": s["compose_services"], "hasCommands": s["has_commands"]}
               for s in reg.load_all()]
     return {"services": svc_cards, "fields": field_list, "stacks": stacks,
