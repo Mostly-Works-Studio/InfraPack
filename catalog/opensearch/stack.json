@@ -1,0 +1,33 @@
+{
+  "stack": "opensearch",
+  "label": "OpenSearch",
+  "blurb": "Elasticsearch fork · single node, no auth · Dashboards included",
+  "category": "search",
+  "services": [
+    {
+      "name": "opensearch",
+      "label": "OpenSearch",
+      "desc": "OpenSearch {OPENSEARCH_VERSION} · single node · security off",
+      "facts": [
+        {"label": "URL", "value": "http://localhost:{OPENSEARCH_PORT}", "copy": true},
+        {"label": "In-network", "value": "http://opensearch:9200", "copy": true},
+        {"label": "Auth", "value": "none"}
+      ]
+    },
+    {
+      "name": "opensearch-ui",
+      "label": "OpenSearch Dashboards",
+      "ui": true,
+      "desc": "Dev Tools, Discover, dashboards",
+      "link": "http://localhost:{OPENSEARCH_UI_PORT}",
+      "facts": [{"label": "Sign-in", "value": "not required"}]
+    }
+  ],
+  "settings": [
+    {"key": "OPENSEARCH_PORT", "label": "Port", "type": "port", "group": "OpenSearch"},
+    {"key": "OPENSEARCH_JAVA_OPTS", "label": "JVM heap", "type": "text", "group": "OpenSearch"},
+    {"key": "OPENSEARCH_VERSION", "label": "Image tag", "type": "text", "group": "OpenSearch"},
+    {"key": "OPENSEARCH_UI_PORT", "label": "Port", "type": "port", "group": "OpenSearch Dashboards"},
+    {"key": "OPENSEARCH_UI_VERSION", "label": "Image tag", "type": "text", "group": "OpenSearch Dashboards"}
+  ]
+}

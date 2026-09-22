@@ -1,0 +1,48 @@
+{
+  "stack": "mysql",
+  "label": "MySQL",
+  "blurb": "Relational database · CloudBeaver (DBeaver web) as its UI",
+  "category": "database",
+  "services": [
+    {
+      "name": "mysql",
+      "label": "MySQL",
+      "desc": "MySQL {MYSQL_VERSION}",
+      "facts": [
+        {"label": "Host", "value": "localhost:{MYSQL_PORT}", "copy": true},
+        {"label": "Database", "value": "{MYSQL_DATABASE}", "copy": true},
+        {"label": "User", "value": "{MYSQL_USER}", "copy": true},
+        {"label": "Password", "value": "{MYSQL_PASSWORD}", "copy": true, "secret": true},
+        {"label": "Root password", "value": "{MYSQL_ROOT_PASSWORD}", "copy": true, "secret": true},
+        {"label": "URL", "value": "mysql://{MYSQL_USER}:{MYSQL_PASSWORD}@localhost:{MYSQL_PORT}/{MYSQL_DATABASE}", "copy": true, "secret": true},
+        {"label": "JDBC", "value": "jdbc:mysql://localhost:{MYSQL_PORT}/{MYSQL_DATABASE}", "copy": true},
+        {"label": "In-network", "value": "mysql:3306", "copy": true}
+      ]
+    },
+    {
+      "name": "mysql-ui",
+      "label": "CloudBeaver",
+      "ui": true,
+      "desc": "DBeaver in the browser — SQL editor, ER diagrams, data grid",
+      "link": "http://localhost:{MYSQL_UI_PORT}",
+      "facts": [
+        {"label": "Sign-in", "value": "not required (anonymous access)"},
+        {"label": "Connection", "value": "Local MySQL (pre-configured)"},
+        {"label": "Admin user", "value": "{MYSQL_UI_ADMIN_NAME}", "copy": true},
+        {"label": "Admin password", "value": "{MYSQL_UI_ADMIN_PASSWORD}", "copy": true, "secret": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "MYSQL_PORT", "label": "Port", "type": "port", "group": "MySQL"},
+    {"key": "MYSQL_DATABASE", "label": "Database", "type": "text", "group": "MySQL", "pattern": "[A-Za-z0-9_]{1,64}"},
+    {"key": "MYSQL_USER", "label": "User", "type": "text", "group": "MySQL", "pattern": "[A-Za-z0-9_]{1,32}"},
+    {"key": "MYSQL_PASSWORD", "label": "Password", "type": "secret", "group": "MySQL", "pattern": "[^'\"\\\\`$]+"},
+    {"key": "MYSQL_ROOT_PASSWORD", "label": "Root password", "type": "secret", "group": "MySQL", "pattern": "[^'\"\\\\`$]+"},
+    {"key": "MYSQL_VERSION", "label": "Image tag", "type": "text", "group": "MySQL"},
+    {"key": "MYSQL_UI_PORT", "label": "Port", "type": "port", "group": "CloudBeaver"},
+    {"key": "MYSQL_UI_VERSION", "label": "Image tag", "type": "text", "group": "CloudBeaver"},
+    {"key": "MYSQL_UI_ADMIN_NAME", "label": "Admin user", "type": "text", "group": "CloudBeaver"},
+    {"key": "MYSQL_UI_ADMIN_PASSWORD", "label": "Admin password", "type": "secret", "group": "CloudBeaver", "pattern": "[^'\"\\\\`$]+"}
+  ]
+}

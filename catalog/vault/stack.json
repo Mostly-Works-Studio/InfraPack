@@ -1,0 +1,31 @@
+{
+  "stack": "vault",
+  "label": "Vault",
+  "blurb": "Secrets manager · persistent, auto-unsealed on every start · web UI built in",
+  "category": "auth",
+  "services": [
+    {
+      "name": "vault",
+      "label": "Vault",
+      "desc": "Vault {VAULT_VERSION} · file storage · auto-unsealed",
+      "link": "http://localhost:{VAULT_PORT}",
+      "facts": [
+        {"label": "Address", "value": "http://localhost:{VAULT_PORT}", "copy": true},
+        {"label": "Root token", "value": "{VAULT_TOKEN}", "copy": true, "secret": true},
+        {"label": "In-network", "value": "http://vault:8200", "copy": true},
+        {"label": "Env for CLI", "value": "export VAULT_ADDR=http://localhost:{VAULT_PORT} VAULT_TOKEN={VAULT_TOKEN}", "copy": true, "secret": true}
+      ]
+    },
+    {
+      "name": "vault-init",
+      "label": "Vault unsealer",
+      "desc": "Initialises on first boot, unseals after every restart",
+      "facts": [{"label": "Keys", "value": "docker volume infrapack_vault-keys (kept unless --purge)"}]
+    }
+  ],
+  "settings": [
+    {"key": "VAULT_PORT", "label": "Port", "type": "port", "group": "Vault"},
+    {"key": "VAULT_TOKEN", "label": "Root token", "type": "secret", "group": "Vault", "optional": true, "note": "generated on first start"},
+    {"key": "VAULT_VERSION", "label": "Image tag", "type": "text", "group": "Vault"}
+  ]
+}

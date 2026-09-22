@@ -1,0 +1,39 @@
+# DynamoDB Local + dynamodb-admin UI. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:${DYNAMODB_VERSION:-latest}
+    container_name: infrapack-dynamodb
+    restart: *restart
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "/home/dynamodblocal/data"]
+    user: root
+    ports:
+      - "${DYNAMODB_PORT:-8000}:8000"
+    volumes:
+      - dynamodb-data:/home/dynamodblocal/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://127.0.0.1:8000/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    networks: [infra]
+
+  dynamodb-ui:
+    image: aaronshaf/dynamodb-admin:${DYNAMODB_UI_VERSION:-latest}
+    container_name: infrapack-dynamodb-ui
+    restart: *restart
+    environment:
+      DYNAMO_ENDPOINT: http://dynamodb:8000
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+    ports:
+      - "${DYNAMODB_UI_PORT:-8001}:8001"
+    depends_on:
+      - dynamodb
+    networks: [infra]
+
+volumes:
+  dynamodb-data:

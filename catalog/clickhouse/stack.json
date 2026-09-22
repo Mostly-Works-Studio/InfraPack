@@ -1,0 +1,31 @@
+{
+  "stack": "clickhouse",
+  "label": "ClickHouse",
+  "blurb": "Columnar analytics database · HTTP and native protocols · built-in play UI",
+  "category": "database",
+  "services": [
+    {
+      "name": "clickhouse",
+      "label": "ClickHouse",
+      "desc": "ClickHouse {CLICKHOUSE_VERSION} · HTTP :{CLICKHOUSE_PORT} · native :{CLICKHOUSE_NATIVE_PORT}",
+      "link": "http://localhost:{CLICKHOUSE_PORT}/play",
+      "facts": [
+        {"label": "HTTP", "value": "http://localhost:{CLICKHOUSE_PORT}", "copy": true},
+        {"label": "Native", "value": "localhost:{CLICKHOUSE_NATIVE_PORT}", "copy": true},
+        {"label": "Database", "value": "{CLICKHOUSE_DATABASE}", "copy": true},
+        {"label": "User", "value": "{CLICKHOUSE_USER}", "copy": true},
+        {"label": "Password", "value": "{CLICKHOUSE_PASSWORD}", "copy": true, "secret": true},
+        {"label": "URL", "value": "clickhouse://{CLICKHOUSE_USER}:{CLICKHOUSE_PASSWORD}@localhost:{CLICKHOUSE_NATIVE_PORT}/{CLICKHOUSE_DATABASE}", "copy": true, "secret": true},
+        {"label": "In-network", "value": "clickhouse:8123 / clickhouse:9000", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "CLICKHOUSE_PORT", "label": "HTTP port", "type": "port", "group": "ClickHouse"},
+    {"key": "CLICKHOUSE_NATIVE_PORT", "label": "Native port", "type": "port", "group": "ClickHouse"},
+    {"key": "CLICKHOUSE_DATABASE", "label": "Database", "type": "text", "group": "ClickHouse", "note": "applied on first start only"},
+    {"key": "CLICKHOUSE_USER", "label": "User", "type": "text", "group": "ClickHouse", "note": "applied on first start only"},
+    {"key": "CLICKHOUSE_PASSWORD", "label": "Password", "type": "secret", "group": "ClickHouse", "note": "applied on first start only"},
+    {"key": "CLICKHOUSE_VERSION", "label": "Image tag", "type": "text", "group": "ClickHouse"}
+  ]
+}

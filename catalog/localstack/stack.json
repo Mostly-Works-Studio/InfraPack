@@ -1,0 +1,27 @@
+{
+  "stack": "localstack",
+  "label": "LocalStack",
+  "blurb": "Local AWS · S3, SQS, SNS, DynamoDB, Lambda and more on one port",
+  "category": "cloud",
+  "services": [
+    {
+      "name": "localstack",
+      "label": "LocalStack",
+      "desc": "AWS emulator · every service on :{LOCALSTACK_PORT}",
+      "facts": [
+        {"label": "Endpoint", "value": "http://localhost:{LOCALSTACK_PORT}", "copy": true},
+        {"label": "In-network", "value": "http://localstack:4566", "copy": true},
+        {"label": "Credentials", "value": "test / test (any value works)", "copy": true},
+        {"label": "Region", "value": "us-east-1", "copy": true},
+        {"label": "AWS CLI", "value": "aws --endpoint-url http://localhost:{LOCALSTACK_PORT} s3 ls", "copy": true},
+        {"label": "Health", "value": "http://localhost:{LOCALSTACK_PORT}/_localstack/health", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "LOCALSTACK_PORT", "label": "Port", "type": "port", "group": "LocalStack"},
+    {"key": "LOCALSTACK_SERVICES", "label": "Services (comma list, empty = all)", "type": "text", "group": "LocalStack", "optional": true},
+    {"key": "LOCALSTACK_AUTH_TOKEN", "label": "Auth token (only for 2026.x images)", "type": "secret", "group": "LocalStack", "optional": true},
+    {"key": "LOCALSTACK_VERSION", "label": "Image tag", "type": "text", "group": "LocalStack", "note": "4.14 is the last token-free version"}
+  ]
+}

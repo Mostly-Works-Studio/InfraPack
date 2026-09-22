@@ -1,0 +1,19 @@
+# Jaeger all-in-one — distributed tracing with OTLP ingest and a UI. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  jaeger:
+    image: jaegertracing/jaeger:${JAEGER_VERSION:-2.21.0}
+    container_name: infrapack-jaeger
+    restart: *restart
+    ports:
+      - "${JAEGER_UI_PORT:-16686}:16686"
+      - "${JAEGER_OTLP_GRPC_PORT:-4317}:4317"
+      - "${JAEGER_OTLP_HTTP_PORT:-4318}:4318"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:16686/ >/dev/null || wget -qO- http://127.0.0.1:13133/ >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    networks: [infra]

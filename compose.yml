@@ -1,0 +1,31 @@
+# InfraPack base: the console and the shared network, nothing else.
+# Each installed tech is merged in from ~/.infrapack/stacks/<name>/compose.yml
+# by the CLI; never edit this file to add one.
+name: infrapack
+
+services:
+  console:
+    image: ${INFRAPACK_IMAGE:-ghcr.io/mostly-works-studio/infrapack}:${INFRAPACK_VERSION:-dev}
+    container_name: infrapack-console
+    restart: ${CONSOLE_RESTART:-unless-stopped}
+    environment:
+      INFRAPACK_HOME: ${INFRAPACK_HOME}
+      INFRAPACK_APP: /app
+      INFRAPACK_IN_CONTAINER: "1"
+      INFRAPACK_HOST_OS: ${INFRAPACK_HOST_OS:-unknown}
+      INFRAPACK_VERSION: ${INFRAPACK_VERSION:-dev}
+      DOCKER_SOCK: ${DOCKER_SOCK:-/var/run/docker.sock}
+    ports:
+      # Loopback only: this container can control Docker.
+      - "127.0.0.1:${CONSOLE_PORT:-7070}:8000"
+    volumes:
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
+      # The workspace is mounted at its host path so compose, run from inside
+      # the container, resolves bind mounts exactly as it would on the host.
+      - ${INFRAPACK_HOME}:${INFRAPACK_HOME}
+    working_dir: ${INFRAPACK_HOME}
+    networks: [infra]
+
+networks:
+  infra:
+    name: infrapack

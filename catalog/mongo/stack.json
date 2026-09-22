@@ -1,0 +1,34 @@
+{
+  "stack": "mongo",
+  "label": "MongoDB",
+  "blurb": "Document database · Mongo Express as its web UI",
+  "category": "database",
+  "services": [
+    {
+      "name": "mongo",
+      "label": "MongoDB",
+      "desc": "MongoDB {MONGO_VERSION} · no auth (local only)",
+      "facts": [
+        {"label": "Host", "value": "localhost:{MONGO_PORT}", "copy": true},
+        {"label": "URI", "value": "mongodb://localhost:{MONGO_PORT}", "copy": true},
+        {"label": "In-network", "value": "mongodb://mongo:27017", "copy": true}
+      ]
+    },
+    {
+      "name": "mongo-ui",
+      "label": "Mongo Express",
+      "ui": true,
+      "desc": "Browse databases, collections and documents",
+      "link": "http://localhost:{MONGO_UI_PORT}",
+      "facts": [
+        {"label": "Sign-in", "value": "not required"}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "MONGO_PORT", "label": "Port", "type": "port", "group": "MongoDB"},
+    {"key": "MONGO_VERSION", "label": "Image tag", "type": "text", "group": "MongoDB"},
+    {"key": "MONGO_UI_PORT", "label": "Port", "type": "port", "group": "Mongo Express"},
+    {"key": "MONGO_UI_VERSION", "label": "Image tag", "type": "text", "group": "Mongo Express"}
+  ]
+}

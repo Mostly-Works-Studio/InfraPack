@@ -1,0 +1,30 @@
+# LocalStack — local AWS (S3, SQS, SNS, DynamoDB, Lambda…). Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  localstack:
+    image: localstack/localstack:${LOCALSTACK_VERSION:-4.14}
+    container_name: infrapack-localstack
+    restart: *restart
+    environment:
+      SERVICES: ${LOCALSTACK_SERVICES:-}
+      DEBUG: "0"
+      PERSISTENCE: "1"
+      # 4.x is the last line that runs without a license; 2026.x needs a token.
+      ACTIVATE_PRO: ${LOCALSTACK_AUTH_TOKEN:+1}
+      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN:-}
+    ports:
+      - "${LOCALSTACK_PORT:-4566}:4566"
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://127.0.0.1:4566/_localstack/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+    networks: [infra]
+
+volumes:
+  localstack-data:

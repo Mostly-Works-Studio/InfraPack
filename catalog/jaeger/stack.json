@@ -1,0 +1,26 @@
+{
+  "stack": "jaeger",
+  "label": "Jaeger",
+  "blurb": "Distributed tracing · OTLP ingest (gRPC + HTTP) · trace UI",
+  "category": "observability",
+  "services": [
+    {
+      "name": "jaeger",
+      "label": "Jaeger",
+      "desc": "Jaeger {JAEGER_VERSION} all-in-one · in-memory storage",
+      "link": "http://localhost:{JAEGER_UI_PORT}",
+      "facts": [
+        {"label": "OTLP gRPC", "value": "http://localhost:{JAEGER_OTLP_GRPC_PORT}", "copy": true},
+        {"label": "OTLP HTTP", "value": "http://localhost:{JAEGER_OTLP_HTTP_PORT}", "copy": true},
+        {"label": "In-network", "value": "http://jaeger:4317 (gRPC) · http://jaeger:4318 (HTTP)", "copy": true},
+        {"label": "Env for apps", "value": "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:{JAEGER_OTLP_HTTP_PORT}", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "JAEGER_UI_PORT", "label": "UI port", "type": "port", "group": "Jaeger"},
+    {"key": "JAEGER_OTLP_GRPC_PORT", "label": "OTLP gRPC port", "type": "port", "group": "Jaeger"},
+    {"key": "JAEGER_OTLP_HTTP_PORT", "label": "OTLP HTTP port", "type": "port", "group": "Jaeger"},
+    {"key": "JAEGER_VERSION", "label": "Image tag", "type": "text", "group": "Jaeger"}
+  ]
+}

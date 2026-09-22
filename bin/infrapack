@@ -1,0 +1,1144 @@
+#!/usr/bin/env bash
+# InfraPack — local development infrastructure, one command.
+#
+# Host requirements: bash 3.2+ and Docker. Nothing else. Anything that needs
+# more than that (JSON, the web console) runs inside the console container.
+#
+# Layout
+#   app dir        this checkout / brew libexec: bin/, catalog/, console/, compose.yml
+#   workspace      ~/.infrapack: .env, stacks/<name>/ (installed techs), agent files
+#
+# Every installed tech is a directory under $INFRAPACK_HOME/stacks holding a
+# compose fragment, a stack.json for the console, a defaults.env, and optional
+# hooks/ and commands.sh. The catalog under the app dir has the same layout;
+# "install" is a copy.
+set -euo pipefail
+# INFRAPACK_DEBUG=1 shows where an unexpected non-zero exit came from.
+trap 'rc=$?; if [[ -n "${INFRAPACK_DEBUG:-}" && -z "${INFRAPACK_QUIET_EXIT:-}" ]]; then printf "infrapack: exit %s from: %s\n" "$rc" "$BASH_COMMAND" >&2; fi; exit $rc' ERR
+
+INFRAPACK_VERSION_FALLBACK="dev"
+
+# ------------------------------------------------------------------ paths --
+_resolve() {                       # readlink -f that also works on old macOS
+  local p="$1" dir
+  while [ -L "$p" ]; do
+    dir="$(cd "$(dirname "$p")" && pwd -P)"
+    p="$(readlink "$p")"
+    [[ "$p" != /* ]] && p="$dir/$p"
+  done
+  echo "$(cd "$(dirname "$p")" && pwd -P)/$(basename "$p")"
+}
+
+if [[ -z "${INFRAPACK_APP:-}" ]]; then
+  _self="$(_resolve "${BASH_SOURCE[0]}")"
+  INFRAPACK_APP="$(cd "$(dirname "$_self")/.." && pwd -P)"
+fi
+export INFRAPACK_APP
+INFRAPACK_HOME="${INFRAPACK_HOME:-$HOME/.infrapack}"
+export INFRAPACK_HOME
+
+CATALOG_DIR="$INFRAPACK_APP/catalog"
+STACKS_DIR="$INFRAPACK_HOME/stacks"
+ENV_FILE="$INFRAPACK_HOME/.env"
+BASE_COMPOSE="$INFRAPACK_APP/compose.yml"
+IN_CONTAINER="${INFRAPACK_IN_CONTAINER:-0}"
+PROJECT="infrapack"
+IMAGE_REPO="${INFRAPACK_IMAGE:-ghcr.io/mostly-works-studio/infrapack}"
+
+VERSION="$(cat "$INFRAPACK_APP/VERSION" 2>/dev/null || echo "$INFRAPACK_VERSION_FALLBACK")"
+VERSION="${VERSION//[[:space:]]/}"
+export INFRAPACK_VERSION="$VERSION"
+
+OS="$(uname -s)"
+
+# ----------------------------------------------------------------- output --
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+  B=$'\033[1m'; DIM=$'\033[2m'; G=$'\033[32m'; Y=$'\033[33m'; R=$'\033[31m'; C=$'\033[36m'; N=$'\033[0m'
+else
+  B=""; DIM=""; G=""; Y=""; R=""; C=""; N=""
+fi
+info() { printf '%s==>%s %s\n' "$C" "$N" "$*"; }
+ok()   { printf '%s  ok%s %s\n' "$G" "$N" "$*"; }
+warn() { printf '%swarn%s %s\n' "$Y" "$N" "$*" >&2; }
+die()  { printf '%s err%s %s\n' "$R" "$N" "$*" >&2; INFRAPACK_QUIET_EXIT=1; exit 1; }
+export B DIM G Y R C N
+export -f info ok warn die
+
+# ---------------------------------------------------------------- helpers --
+lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
+upper() { printf '%s' "$1" | tr '[:lower:]' '[:upper:]'; }
+env_prefix() { upper "${1//-/_}"; }
+
+# Names are also directory names, env prefixes and container names.
+valid_name() { [[ "$1" =~ ^[a-z][a-z0-9-]{1,23}$ ]]; }
+
+# Read a top-level string field out of a stack.json without a JSON parser.
+# Good enough for the flat "label"/"blurb"/"category" fields, which is all
+# the CLI ever needs; the console does real parsing.
+meta() {
+  local file="$1" key="$2"
+  sed -n -E "s/^  \"$key\": \"(([^\"\\\\]|\\\\.)*)\".*/\1/p" "$file" 2>/dev/null | head -1 \
+    | sed -e 's/\\"/"/g' -e 's/\\u00b7/·/g' -e 's/\\u2014/—/g'
+}
+
+# Service names in a compose fragment: two-space-indented keys under services:.
+compose_services() {
+  awk '
+    /^services:[ \t]*$/ { s = 1; next }
+    /^[^ \t#]/          { s = 0 }
+    s && /^  [A-Za-z0-9_.-]+:[ \t]*$/ { sub(/^  /, ""); sub(/:.*/, ""); print }
+  ' "$1"
+}
+
+# --------------------------------------------------------------- .env I/O --
+env_get() { grep -E "^$1=" "$ENV_FILE" 2>/dev/null | tail -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'; }
+
+env_set() {                        # portable in-place edit; BSD/GNU sed differ on -i
+  local key="$1" value="$2" tmp
+  tmp="$(mktemp)"
+  if grep -qE "^$key=" "$ENV_FILE" 2>/dev/null; then
+    awk -v k="$key" -v v="$value" 'index($0, k "=") == 1 { print k "=" v; next } { print }' "$ENV_FILE" > "$tmp"
+  else
+    cat "$ENV_FILE" > "$tmp" 2>/dev/null || true
+    printf '%s=%s\n' "$key" "$value" >> "$tmp"
+  fi
+  mv "$tmp" "$ENV_FILE"
+}
+
+env_keys_in() {                    # KEY names declared in a defaults.env
+  grep -oE '^[A-Z][A-Z0-9_]*=' "$1" 2>/dev/null | tr -d '=' || true
+}
+
+# Append a stack's defaults under a marker, skipping keys that already exist
+# (so a re-install keeps what the user changed).
+env_merge_defaults() {
+  local stack="$1" file="$2" key line
+  [[ -f "$file" ]] || return 0
+  printf '\n# --- %s ---\n' "$stack" >> "$ENV_FILE"
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    case "$line" in
+      ''|'#'*) [[ -n "$line" ]] && printf '%s\n' "$line" >> "$ENV_FILE"; continue ;;
+    esac
+    key="${line%%=*}"
+    if grep -qE "^$key=" "$ENV_FILE"; then continue; fi
+    printf '%s\n' "$line" >> "$ENV_FILE"
+  done < "$file"
+}
+
+env_remove_stack() {               # drop the marker block and the stack's keys
+  local stack="$1" file="$2" tmp keys
+  keys="$(env_keys_in "$file" | tr '\n' ' ')"
+  tmp="$(mktemp)"
+  awk -v marker="# --- $stack ---" -v keys=" $keys " '
+    $0 == marker { next }
+    /^[A-Z][A-Z0-9_]*=/ { k = $0; sub(/=.*/, "", k); if (index(keys, " " k " ")) next }
+    { print }
+  ' "$ENV_FILE" > "$tmp"
+  mv "$tmp" "$ENV_FILE"
+}
+
+# ----------------------------------------------------------------- setup --
+[[ -d "$CATALOG_DIR" ]] || die "catalog not found at $CATALOG_DIR — is INFRAPACK_APP right?"
+
+need_docker() {
+  command -v docker >/dev/null || die "docker is not installed — https://docs.docker.com/get-docker/ (or 'infrapack doctor')"
+  docker compose version >/dev/null 2>&1 || die "docker compose v2+ is required"
+  docker info >/dev/null 2>&1 || die "the Docker daemon is not running — start Docker Desktop / OrbStack / Colima first"
+}
+
+ensure_workspace() {
+  mkdir -p "$STACKS_DIR" "$INFRAPACK_HOME/inbox"
+  if [[ ! -f "$ENV_FILE" ]]; then
+    cat > "$ENV_FILE" <<EOF
+# InfraPack workspace settings. Edit here or in the console.
+TZ=UTC
+
+# --- console ---
+# The web console (loopback only). Comes back whenever Docker starts.
+CONSOLE_PORT=7070
+CONSOLE_RESTART=unless-stopped
+# Installed techs do NOT auto-start with Docker; set to unless-stopped if
+# you would rather have whatever was running come back after a reboot.
+INFRA_RESTART=no
+EOF
+    info "created workspace at $INFRAPACK_HOME"
+  fi
+  # shellcheck disable=SC1090
+  set -a; source "$ENV_FILE"; set +a
+  CONSOLE_PORT="${CONSOLE_PORT:-7070}"
+
+  # Docker's socket path differs per engine (Desktop, OrbStack, Colima...).
+  if [[ "$IN_CONTAINER" != 1 && -z "${DOCKER_SOCK:-}" ]]; then
+    local host
+    host="$(docker context inspect --format '{{(index .Endpoints "docker").Host}}' 2>/dev/null || true)"
+    case "$host" in
+      unix://*) DOCKER_SOCK="${host#unix://}" ;;
+      *)        DOCKER_SOCK="/var/run/docker.sock" ;;
+    esac
+  fi
+  export DOCKER_SOCK="${DOCKER_SOCK:-/var/run/docker.sock}"
+  export INFRAPACK_HOST_OS="${INFRAPACK_HOST_OS:-$OS}"
+}
+
+# ---------------------------------------------------------------- stacks --
+installed_stacks() {
+  local d
+  for d in "$STACKS_DIR"/*/; do
+    [[ -f "$d/compose.yml" ]] && basename "$d"
+  done 2>/dev/null
+  return 0
+}
+
+catalog_stacks() {
+  local d
+  for d in "$CATALOG_DIR"/*/; do
+    [[ -f "$d/compose.yml" ]] && basename "$d"
+  done 2>/dev/null
+  return 0
+}
+
+is_installed() { [[ -f "$STACKS_DIR/$1/compose.yml" ]]; }
+in_catalog()   { [[ -f "$CATALOG_DIR/$1/compose.yml" ]]; }
+
+stack_services()    { compose_services "$STACKS_DIR/$1/compose.yml"; }
+stack_ui_services() { stack_services "$1" | grep -E -- '-ui$' || true; }
+
+# Resolve "stack..." arguments: nothing or "all" means every installed stack.
+resolve_stacks() {
+  local out=() arg
+  if [[ $# -eq 0 || "$1" == "all" ]]; then
+    for arg in $(installed_stacks); do out+=("$arg"); done
+  else
+    for arg in "$@"; do
+      is_installed "$arg" || die "'$arg' is not installed (installed: $(installed_stacks | tr '\n' ' ')— see 'infrapack catalog')"
+      out+=("$arg")
+    done
+  fi
+  echo "${out[@]+"${out[@]}"}"
+}
+
+services_for() {                   # honours NO_UI
+  local stack svc
+  for stack in "$@"; do
+    for svc in $(stack_services "$stack"); do
+      [[ "$NO_UI" == 1 && "$svc" == *-ui ]] && continue
+      echo "$svc"
+    done
+  done
+}
+
+service_stack() {                  # which installed stack owns a service
+  local stack svc
+  for stack in $(installed_stacks); do
+    for svc in $(stack_services "$stack"); do
+      [[ "$svc" == "$1" ]] && { echo "$stack"; return 0; }
+    done
+  done
+  return 1
+}
+
+# Hooks are plain bash scripts in <stack>/hooks/, run with the workspace env
+# loaded, cwd = the stack dir, and the helpers above exported.
+run_hook() {
+  local stack="$1" hook="$2"; shift 2
+  local script="$STACKS_DIR/$stack/hooks/$hook.sh"
+  [[ -f "$script" ]] || return 0
+  ( cd "$STACKS_DIR/$stack" &&
+    STACK="$stack" STACK_DIR="$STACKS_DIR/$stack" bash "$script" "$@" )
+}
+
+# --------------------------------------------------------------- compose --
+compose_args() {
+  local stack
+  printf -- '-f\n%s\n' "$BASE_COMPOSE"
+  for stack in $(installed_stacks); do
+    printf -- '-f\n%s\n' "$STACKS_DIR/$stack/compose.yml"
+  done
+}
+
+dc() {
+  local files=() quiet=()
+  while IFS= read -r line; do files+=("$line"); done < <(compose_args)
+  [[ -t 1 ]] || quiet=(--progress quiet)
+  docker compose --project-name "$PROJECT" --project-directory "$INFRAPACK_HOME" "${quiet[@]+"${quiet[@]}"}" "${files[@]}" "$@"
+}
+
+running() { docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$PROJECT-$1"; }
+export PROJECT ENV_FILE; export -f running env_set env_get
+# for stack commands: -it when attached to a terminal, plain -i otherwise
+if [[ -t 0 && -t 1 ]]; then DOCKER_TTY=-it; else DOCKER_TTY=-i; fi; export DOCKER_TTY
+
+console_image() { echo "$IMAGE_REPO:$VERSION"; }
+
+# Released versions are pulled from the registry; a dev checkout builds the
+# image from the app dir. Either way, run once and cache.
+ensure_console_image() {
+  local img; img="$(console_image)"
+  docker image inspect "$img" >/dev/null 2>&1 && return 0
+  if [[ "$VERSION" != "dev" && "${INFRAPACK_DEV:-0}" != 1 ]]; then
+    info "pulling console image $img"
+    docker pull "$img" >/dev/null 2>&1 && return 0
+    warn "could not pull $img — building it locally instead"
+  fi
+  info "building console image $img"
+  docker build -q -t "$img" -f "$INFRAPACK_APP/console/Dockerfile" "$INFRAPACK_APP" >/dev/null
+}
+
+host_arch() { docker info --format '{{.Architecture}}' 2>/dev/null || uname -m; }
+arch_platform() {                  # docker platform string for this host
+  case "$(host_arch)" in
+    aarch64|arm64) echo linux/arm64 ;;
+    x86_64|amd64)  echo linux/amd64 ;;
+    *)             echo "linux/$(host_arch)" ;;
+  esac
+}
+# Can this host run images for another platform (Rosetta / QEMU / binfmt)?
+emulation_ok() { docker run --rm --platform "$1" alpine:3 true >/dev/null 2>&1; }
+
+# Anything JSON-shaped is answered by Python inside the console image, so the
+# host never needs it. registry() is read-only; registry_stdin() passes stdin
+# through and may write to the workspace (the custom-tech generator).
+registry() {
+  if [[ "$IN_CONTAINER" == 1 ]]; then
+    python3 "$INFRAPACK_APP/console/registry.py" "$@"
+  elif running console; then
+    docker exec -e "INFRAPACK_HOME=$INFRAPACK_HOME" "$PROJECT-console" python3 /app/console/registry.py "$@"
+  else
+    ensure_console_image
+    docker run --rm -v "$INFRAPACK_HOME:$INFRAPACK_HOME:ro" -e "INFRAPACK_HOME=$INFRAPACK_HOME" \
+      "$(console_image)" python3 /app/console/registry.py "$@"
+  fi
+}
+registry_stdin() {
+  local script="$1"; shift
+  if [[ "$IN_CONTAINER" == 1 ]]; then
+    python3 "$INFRAPACK_APP/console/$script.py" "$@"
+  elif running console; then
+    docker exec -i -e "INFRAPACK_HOME=$INFRAPACK_HOME" "$PROJECT-console" python3 "/app/console/$script.py" "$@"
+  else
+    ensure_console_image
+    docker run --rm -i -v "$DOCKER_SOCK:/var/run/docker.sock" -v "$INFRAPACK_HOME:$INFRAPACK_HOME" \
+      -e "INFRAPACK_HOME=$INFRAPACK_HOME" "$(console_image)" python3 "/app/console/$script.py" "$@"
+  fi
+}
+
+# --------------------------------------------------------------- manifest --
+# A project can commit an infrapack.yaml listing the techs it needs:
+#
+#   techs:
+#     - postgres
+#     - redis
+#   settings:                # optional, applied when a tech is first installed
+#     POSTGRES_DATABASE: shop
+#
+# `infrapack up` / `down` with no stack names, run anywhere inside that
+# repo, act on exactly those techs.
+MANIFEST_NAME="infrapack.yaml"
+find_manifest() {
+  local d="${INFRAPACK_PROJECT:-$PWD}"
+  [[ -f "$d" ]] && { echo "$d"; return 0; }
+  while [[ "$d" != "/" && -n "$d" ]]; do
+    [[ -f "$d/$MANIFEST_NAME" ]] && { echo "$d/$MANIFEST_NAME"; return 0; }
+    d="$(dirname "$d")"
+  done
+  return 1
+}
+manifest_techs()    { awk '/^techs:/{s=1;next} /^[^ \t#-]/{s=0} s && /^[ \t]*-[ \t]*[a-z]/{gsub(/^[ \t]*-[ \t]*/,"");gsub(/[ \t#].*$/,"");print}' "$1"; }
+manifest_settings() { awk '/^settings:/{s=1;next} /^[^ \t#]/{s=0} s && /^[ \t]+[A-Z][A-Z0-9_]*[ \t]*:/{k=$0;sub(/^[ \t]+/,"",k);sub(/[ \t]*:[ \t]*/,"=",k);sub(/[ \t]+#.*$/,"",k);gsub(/"/,"",k);print k}' "$1"; }
+
+# Make sure every tech a manifest names is installed (from the catalog, with
+# the manifest's settings), asking first unless --yes / not a terminal.
+manifest_ensure() {
+  local file="$1" tech missing=() kv
+  for tech in $(manifest_techs "$file"); do
+    valid_name "$tech" || die "$MANIFEST_NAME: bad tech name '$tech'"
+    is_installed "$tech" || missing+=("$tech")
+  done
+  [[ ${#missing[@]} -eq 0 ]] && return 0
+  info "this project needs: ${missing[*]} (not installed yet)"
+  for tech in "${missing[@]}"; do
+    in_catalog "$tech" || die "'$tech' is not installed and not in the catalog — 'infrapack add $tech …' or 'infrapack import' first"
+  done
+  if [[ "$ASSUME_YES" != 1 && -t 0 ]]; then
+    read -r -p "install from the catalog now? [Y/n] " reply
+    case "$reply" in n|N|no|NO) die "aborted" ;; esac
+  fi
+  local sets=()
+  while IFS= read -r kv; do [[ -n "$kv" ]] && sets+=("$kv"); done < <(manifest_settings "$file")
+  for tech in "${missing[@]}"; do
+    local mine=() pre; pre="$(env_prefix "$tech")"
+    for kv in ${sets[@]+"${sets[@]}"}; do
+      # only hand a tech the settings it declares
+      if env_keys_in "$CATALOG_DIR/$tech/defaults.env" | grep -qx "${kv%%=*}"; then mine+=("$kv"); fi
+    done
+    cmd_install "$tech" --no-start ${mine[@]+"${mine[@]}"}
+  done
+}
+
+# Which projects are using which techs. `up` in a project claims its techs;
+# `down` there releases them and only stops what nobody else still claims.
+CLAIMS_FILE="$INFRAPACK_HOME/claims"
+MANUAL="manual"                    # holder for techs you started yourself
+claims_prune() {                   # drop projects whose manifest is gone
+  [[ -f "$CLAIMS_FILE" ]] || return 0
+  local tmp _t _p; tmp="$(mktemp)"
+  while IFS=$'\t' read -r _t _p; do
+    [[ -n "$_t" ]] && { [[ "$_p" == "$MANUAL" || -f "$_p/$MANIFEST_NAME" ]] && printf '%s\t%s\n' "$_t" "$_p"; }
+  done < "$CLAIMS_FILE" > "$tmp"
+  mv "$tmp" "$CLAIMS_FILE"
+}
+claims_add() {                     # claims_add <project-dir> <tech...>
+  local proj="$1"; shift
+  local tech
+  touch "$CLAIMS_FILE"
+  for tech in "$@"; do
+    grep -qxF "$tech	$proj" "$CLAIMS_FILE" || printf '%s\t%s\n' "$tech" "$proj" >> "$CLAIMS_FILE"
+  done
+}
+claims_release() {                 # claims_release <project-dir> [tech...]; no techs = all
+  [[ -f "$CLAIMS_FILE" ]] || return 0
+  local proj="$1"; shift
+  local tmp; tmp="$(mktemp)"
+  awk -F'\t' -v p="$proj" -v techs=" $* " '
+    $2 != p { print; next }
+    techs != "  " && index(techs, " " $1 " ") == 0 { print }
+  ' "$CLAIMS_FILE" > "$tmp"
+  mv "$tmp" "$CLAIMS_FILE"
+}
+claims_clear_tech() {              # an explicit stop of a tech wins over any project
+  [[ -f "$CLAIMS_FILE" ]] || return 0
+  local tmp; tmp="$(mktemp)"
+  awk -F'\t' -v techs=" $* " 'index(techs, " " $1 " ") == 0' "$CLAIMS_FILE" > "$tmp"
+  mv "$tmp" "$CLAIMS_FILE"
+}
+claims_of() {                      # projects using a tech, one per line
+  [[ -f "$CLAIMS_FILE" ]] || return 0
+  awk -F'\t' -v t="$1" '$1 == t { print $2 }' "$CLAIMS_FILE"
+}
+
+cmd_init() {
+  local file="${INFRAPACK_PROJECT:-$PWD}/$MANIFEST_NAME" techs=()
+  [[ -f "$file" && "$FORCE" != 1 ]] && die "$file exists (use --force to overwrite)"
+  if [[ $# -gt 0 ]]; then techs=("$@")
+  else
+    local stack svc
+    for stack in $(installed_stacks); do
+      for svc in $(stack_services "$stack"); do running "$svc" && { techs+=("$stack"); break; }; done
+    done
+  fi
+  [[ ${#techs[@]} -gt 0 ]] || die "nothing is running — name the techs: infrapack init postgres redis"
+  {
+    echo "# InfraPack — local infrastructure this project needs."
+    echo "# A new joiner runs 'infrapack up' here and gets exactly this."
+    echo "techs:"
+    for stack in "${techs[@]}"; do echo "  - $stack"; done
+    echo "# settings:                 # optional, applied when a tech is first installed"
+    echo "#   POSTGRES_DATABASE: shop"
+  } > "$file"
+  ok "wrote $file (${techs[*]})"
+}
+
+cmd_export() {
+  local file="${1:-}" flags=()
+  [[ "$WITH_SECRETS" == 1 ]] && flags+=(--with-secrets)
+  if [[ -z "$file" || "$file" == "-" ]]; then registry_stdin pack export ${flags[@]+"${flags[@]}"}; return; fi
+  registry_stdin pack export ${flags[@]+"${flags[@]}"} > "$file"
+  local n; n="$(installed_stacks | wc -l | tr -d ' ')"
+  ok "exported $n tech(s) to $file$([[ "$WITH_SECRETS" == 1 ]] || echo ' (secrets masked — add --with-secrets to include them)')"
+  printf 'share it, then on another machine: %sinfrapack import %s%s\n' "$B" "$(basename "$file")" "$N"
+}
+
+cmd_import() {
+  local src="${1:?usage: infrapack import <file|url> [--force] [--no-start]}" tmp
+  tmp="$(mktemp)"
+  case "$src" in
+    http://*|https://*) command -v curl >/dev/null || die "curl is needed to import from a URL"
+                        curl -fsSL "$src" -o "$tmp" || die "could not download $src" ;;
+    -)                  cat > "$tmp" ;;
+    *)                  [[ -f "$src" ]] || die "no such file: $src"; cp "$src" "$tmp" ;;
+  esac
+  local flags=() plan line kind name rest added=() sets=()
+  [[ "$FORCE" == 1 ]] && flags+=(--force)
+  plan="$(registry_stdin pack import ${flags[@]+"${flags[@]}"} < "$tmp")" || { rm -f "$tmp"; die "${plan#ERROR }"; }
+  rm -f "$tmp"
+  while IFS= read -r line; do
+    kind="${line%% *}"; rest="${line#* }"
+    case "$kind" in
+      SKIP)    name="${rest%% *}"; printf '%s  --%s %s (%s)\n' "$DIM" "$N" "$name" "${rest#* }" ;;
+      CUSTOM)  info "custom tech $rest"; finish_install "$rest" 0; added+=("$rest") ;;
+      INSTALL) cmd_install "$rest" --no-start; added+=("$rest") ;;
+      SET)     sets+=("$rest") ;;
+      ERROR)   die "$rest" ;;
+    esac
+  done <<< "$plan"
+  local kv
+  for kv in ${sets[@]+"${sets[@]}"}; do
+    # only settings of something we just added (or the console's own) — never
+    # silently rewrite a tech the user already had
+    local owner; owner="$(setting_owner "${kv%%=*}")" || continue
+    case " ${added[*]+"${added[*]}"} console " in *" $owner "*) env_set "${kv%%=*}" "${kv#*=}" ;; esac
+  done
+  [[ ${#added[@]} -gt 0 ]] || { ok "nothing new to import"; return 0; }
+  ok "imported: ${added[*]}"
+  if [[ "$NO_START" == 1 ]]; then printf 'start with: %sinfrapack up%s\n' "$B" "$N"; else cmd_up "${added[@]}"; fi
+}
+
+# ---------------------------------------------------------------- actions --
+cmd_up() {
+  local manifest=""
+  if [[ $# -eq 0 ]] && manifest="$(find_manifest)"; then
+    manifest_ensure "$manifest"
+    set -- $(manifest_techs "$manifest")
+    info "project $(dirname "$manifest"): $*"
+    claims_prune; claims_add "$(dirname "$manifest")" "$@"
+  else
+    local named=($(resolve_stacks "$@"))
+    [[ ${#named[@]} -gt 0 ]] && claims_add "$MANUAL" "${named[@]}"
+  fi
+  local stacks; stacks=($(resolve_stacks "$@"))
+  local svcs=() stack
+  [[ "$IN_CONTAINER" == 1 ]] || svcs+=(console)
+  for stack in ${stacks[@]+"${stacks[@]}"}; do run_hook "$stack" pre-up; done
+  for stack in ${stacks[@]+"${stacks[@]}"}; do
+    for s in $(services_for "$stack"); do svcs+=("$s"); done
+  done
+  ensure_console_image
+  if [[ ${#stacks[@]} -eq 0 ]]; then
+    info "starting the console (nothing installed yet — 'infrapack catalog' to pick something)"
+  else
+    info "starting: ${stacks[*]}$([[ $NO_UI == 1 ]] && echo ' (without UIs)')"
+  fi
+  [[ ${#svcs[@]} -gt 0 ]] && dc up -d --remove-orphans "${svcs[@]}"
+  for stack in ${stacks[@]+"${stacks[@]}"}; do run_hook "$stack" post-up; done
+  echo
+  cmd_status ${stacks[@]+"${stacks[@]}"}
+  [[ ${#stacks[@]} -gt 0 ]] && { echo; cmd_urls "${stacks[@]}"; }
+  echo
+  printf '%sConsole%s  http://localhost:%s\n' "$B" "$N" "$CONSOLE_PORT"
+}
+
+cmd_down() {
+  local manifest="" proj=""
+  if [[ $# -eq 0 ]] && manifest="$(find_manifest)"; then
+    proj="$(dirname "$manifest")"
+    claims_prune; claims_release "$proj"
+    local tech keep=() stop=() others
+    for tech in $(manifest_techs "$manifest"); do
+      others="$(claims_of "$tech" | grep -vxF "$proj" | sed "s#^$MANUAL\$#started by you#" | paste -sd, - || true)"
+      if [[ -n "$others" ]]; then keep+=("$tech — $others"); else stop+=("$tech"); fi
+    done
+    info "project $proj"
+    if [[ ${#keep[@]} -gt 0 ]]; then
+      printf '%s  kept running (still in use; "infrapack down <tech>" stops it anyway):%s\n' "$DIM" "$N"
+      printf '    %s\n' "${keep[@]}"
+    fi
+    [[ ${#stop[@]} -gt 0 ]] || { ok "nothing to stop"; return 0; }
+    set -- "${stop[@]}"
+  elif [[ $# -gt 0 && "$1" != "all" ]]; then
+    claims_clear_tech "$@"         # you named it: it stops, whatever projects say
+  else
+    rm -f "$CLAIMS_FILE"           # stopping everything releases every project
+  fi
+  if [[ $# -eq 0 ]]; then
+    local svcs; svcs=($(services_for $(installed_stacks)))
+    info "stopping every installed tech (the console stays up; 'infrapack down all' stops it too)"
+    [[ ${#svcs[@]} -gt 0 ]] && dc rm -sf "${svcs[@]}" >/dev/null
+  elif [[ "$1" == "all" ]]; then
+    info "stopping everything, including the console"
+    dc down --remove-orphans
+  else
+    local stacks; stacks=($(resolve_stacks "$@"))
+    local svcs; svcs=($(services_for "${stacks[@]}"))
+    info "stopping: ${stacks[*]}"
+    dc rm -sf "${svcs[@]}" >/dev/null
+  fi
+  ok "stopped (data kept)"
+}
+
+cmd_restart() {
+  local stacks; stacks=($(resolve_stacks "$@"))
+  [[ ${#stacks[@]} -gt 0 ]] || die "nothing installed"
+  cmd_down "${stacks[@]}"
+  cmd_up "${stacks[@]}"
+}
+
+# Single-service control, used by the console's per-service toggles.
+cmd_svc() {
+  local action="${1:?usage: infrapack svc <up|down|restart> <service>}"
+  local svc="${2:?usage: infrapack svc <up|down|restart> <service>}"
+  local stack; stack="$(service_stack "$svc")" || die "unknown service '$svc'"
+  case "$action" in
+    up)      run_hook "$stack" pre-up; dc up -d "$svc"; run_hook "$stack" post-up; claims_add "$MANUAL" "$stack" ;;
+    down)    dc rm -sf "$svc" >/dev/null; claims_clear_tech "$stack" ;;
+    restart) dc restart "$svc"; run_hook "$stack" post-up ;;
+    *)       die "unknown action '$action'" ;;
+  esac
+  ok "$svc $action"
+}
+
+cmd_status() {
+  local stacks; stacks=($(resolve_stacks "$@"))
+  claims_prune
+  local ps; ps="$(docker ps -a --filter "name=$PROJECT-" --format '{{.Names}}\t{{.State}}\t{{.Status}}\t{{.Ports}}')"
+  printf '%s%-10s %-16s %-10s %s%s\n' "$B" "STACK" "SERVICE" "STATE" "HEALTH / PORTS" "$N"
+  local stack svc line state status ports health
+  if [[ ${#stacks[@]} -eq 0 ]]; then
+    printf '%s(nothing installed — try: infrapack catalog)%s\n' "$DIM" "$N"
+  fi
+  for stack in ${stacks[@]+"${stacks[@]}"}; do
+    for svc in $(stack_services "$stack"); do
+      line="$(printf '%s\n' "$ps" | grep -E "^$PROJECT-$svc"$'\t' || true)"
+      if [[ -z "$line" ]]; then
+        printf '%-10s %-16s %s%-10s -%s\n' "$stack" "$svc" "$DIM" "off" "$N"; continue
+      fi
+      state="$(printf '%s' "$line" | cut -f2)"
+      status="$(printf '%s' "$line" | cut -f3)"
+      ports="$(printf '%s' "$line" | cut -f4 | tr ',' '\n' | grep -oE '(0\.0\.0\.0|127\.0\.0\.1|\[::\]):[0-9]+' | sed 's/.*://' | sort -un | paste -sd, - || true)"
+      health="$(printf '%s' "$status" | grep -oE '\((healthy|unhealthy|health: starting)\)' | tr -d '()' | sed 's/health: //' || true)"
+      if [[ "$state" == "running" ]]; then
+        printf '%-10s %-16s %s%-10s%s %s %s%s%s\n' "$stack" "$svc" "$G" "up" "$N" "${health:--}" "$DIM" "${ports:+:$ports}" "$N"
+      else
+        printf '%-10s %-16s %s%-10s%s %s\n' "$stack" "$svc" "$Y" "$state" "$N" "$status"
+      fi
+    done
+  done
+  if [[ -s "$CLAIMS_FILE" ]]; then
+    printf '\n%sProjects%s\n' "$B" "$N"
+    awk -F'\t' -v m="$MANUAL" '{ h = ($2 == m) ? "(started by you)" : $2; t[h] = t[h] " " $1 } END { for (p in t) printf "  %-40s %s\n", p, t[p] }' "$CLAIMS_FILE" | sort
+  fi
+}
+
+cmd_urls() {
+  local stacks; stacks=($(resolve_stacks "$@"))
+  [[ ${#stacks[@]} -gt 0 ]] || return 0
+  local stack svc up
+  printf '%sEndpoints%s\n' "$B" "$N"
+  for stack in "${stacks[@]}"; do
+    up=""
+    for svc in $(stack_services "$stack"); do running "$svc" && up="$up $svc"; done
+    [[ -n "$up" ]] && registry urls "$stack" $up
+  done
+  return 0
+}
+
+cmd_logs() {
+  local svc="${1:-}"; shift || true
+  if [[ -z "$svc" ]]; then dc logs -f --tail=100
+  else dc logs -f --tail=200 "$svc" "$@"; fi
+}
+
+cmd_pull() {
+  local stacks; stacks=($(resolve_stacks "$@"))
+  [[ ${#stacks[@]} -gt 0 ]] || die "nothing installed"
+  dc pull $(services_for "${stacks[@]}")
+}
+
+cmd_reset() {
+  local stacks; stacks=($(resolve_stacks "$@"))
+  [[ ${#stacks[@]} -gt 0 ]] || die "nothing installed"
+  warn "this deletes ALL data volumes for: ${stacks[*]}"
+  read -r -p "type 'yes' to continue: " reply
+  [[ "$reply" == "yes" ]] || { info "aborted"; return; }
+  cmd_down "${stacks[@]}"
+  local stack v
+  for stack in "${stacks[@]}"; do
+    for v in $(docker volume ls -q --filter "name=^${PROJECT}_${stack}-" 2>/dev/null); do
+      docker volume rm -f "$v" >/dev/null && ok "removed volume $v"
+    done
+  done
+  ok "reset complete — 'infrapack up ${stacks[*]}' starts fresh"
+}
+
+cmd_exec() {
+  local svc="${1:?usage: infrapack exec <service> [command...]}"; shift || true
+  running "$svc" || die "$svc is not running"
+  if [[ $# -eq 0 ]]; then
+    docker exec -it "$PROJECT-$svc" sh -c '[ -x /bin/bash ] && exec bash || exec sh'
+  else
+    docker exec -it "$PROJECT-$svc" "$@"
+  fi
+}
+
+# ---------------------------------------------------------------- catalog --
+cmd_catalog() {
+  local name label blurb mark
+  printf '%s%-12s %-11s %s%s\n' "$B" "NAME" "STATUS" "DESCRIPTION" "$N"
+  for name in $(catalog_stacks); do
+    label="$(meta "$CATALOG_DIR/$name/stack.json" label)"
+    blurb="$(meta "$CATALOG_DIR/$name/stack.json" blurb)"
+    if is_installed "$name"; then mark="${G}installed${N}  "; else mark="${DIM}available${N}  "; fi
+    local plat; plat="$(meta "$CATALOG_DIR/$name/stack.json" platform)"
+    [[ -n "$plat" && "$plat" != "$(arch_platform)" ]] && blurb="$blurb ${Y}(${plat} only: emulated here)${N}"
+    printf '%-12s %s%s%s\n' "$name" "$mark" "${B}${label:-$name}${N}" "${blurb:+ · $blurb}"
+  done
+  printf '\n%sinfrapack install <name>%s  to add one · %sinfrapack add%s for a custom image\n' "$B" "$N" "$B" "$N"
+}
+
+# Host ports already claimed by installed stacks (and the console).
+ports_in_use() {
+  local stack key
+  for stack in $(installed_stacks); do
+    [[ "$stack" == "${1:-}" ]] && continue
+    for key in $(env_keys_in "$STACKS_DIR/$stack/defaults.env"); do
+      [[ "$key" == *_PORT ]] && printf '%s\t%s\n' "$(env_get "$key")" "$key"
+    done
+  done
+  printf '%s\tCONSOLE_PORT\n' "$CONSOLE_PORT"
+}
+
+cmd_install() {
+  local name="" start=1 sets=() arg
+  for arg in "$@"; do
+    case "$arg" in
+      --no-start) start=0 ;;
+      --set=*)    sets+=("${arg#--set=}") ;;
+      *=*)        sets+=("$arg") ;;
+      -*)         die "unknown flag $arg" ;;
+      *)          name="$(lower "$arg")" ;;
+    esac
+  done
+  [[ -n "$name" ]] || die "usage: infrapack install <name> [KEY=VALUE...] [--no-start]"
+  in_catalog "$name" || die "'$name' is not in the catalog — 'infrapack catalog' lists what is"
+  is_installed "$name" && die "$name is already installed"
+
+  # Some images exist for one CPU architecture only (SQL Server: amd64).
+  local platform; platform="$(meta "$CATALOG_DIR/$name/stack.json" platform)"
+  if [[ -n "$platform" && "$platform" != "$(arch_platform)" ]]; then
+    info "$name ships $platform images only; this machine is $(arch_platform) — checking emulation"
+    if emulation_ok "$platform"; then
+      warn "$name will run emulated: expect slower start-up and lower throughput"
+      [[ "$OS" == Darwin ]] && warn "on Docker Desktop, enable Settings → General → 'Use Rosetta for x86_64/amd64 emulation' for a big speed-up"
+    else
+      case "$OS" in
+        Darwin) die "cannot run $platform images here. Docker Desktop: Settings → General → enable 'Use Rosetta for x86_64/amd64 emulation'. OrbStack/Colima: emulation is built in — check 'docker run --platform $platform alpine true'" ;;
+        *)      die "cannot run $platform images here — install binfmt emulation: docker run --privileged --rm tonistiigi/binfmt --install all" ;;
+      esac
+    fi
+  fi
+
+  info "installing $name"
+  cp -R "$CATALOG_DIR/$name" "$STACKS_DIR/$name"
+  env_merge_defaults "$name" "$STACKS_DIR/$name/defaults.env"
+  local kv
+  for kv in ${sets[@]+"${sets[@]}"}; do
+    [[ "$kv" =~ ^[A-Z][A-Z0-9_]*=.*$ ]] || die "bad setting '$kv' (expected KEY=VALUE)"
+    env_set "${kv%%=*}" "${kv#*=}"
+  done
+
+  # A new tech must not land on a port something else already owns.
+  local key val clash
+  for key in $(env_keys_in "$STACKS_DIR/$name/defaults.env"); do
+    [[ "$key" == *_PORT ]] || continue
+    val="$(env_get "$key")"
+    clash="$(ports_in_use "$name" | awk -F'\t' -v p="$val" '$1 == p && !f { print $2; f = 1 }')"
+    if [[ -n "$clash" ]]; then
+      env_remove_stack "$name" "$STACKS_DIR/$name/defaults.env"
+      rm -rf "$STACKS_DIR/$name"
+      die "port $val is already used by $clash — retry with: infrapack install $name $key=<other port>"
+    fi
+  done
+
+  finish_install "$name" "$start"
+}
+
+# Shared by install (catalog copy) and add (generated): the stack directory
+# is in place; merge its defaults, refuse port clashes, start it.
+finish_install() {
+  local name="$1" start="${2:-1}" key val clash
+  env_merge_defaults "$name" "$STACKS_DIR/$name/defaults.env"
+  for key in $(env_keys_in "$STACKS_DIR/$name/defaults.env"); do
+    [[ "$key" =~ _PORT[0-9]*$ ]] || continue
+    val="$(env_get "$key")"
+    clash="$(ports_in_use "$name" | awk -F'\t' -v p="$val" '$1 == p && !f { print $2; f = 1 }')"
+    if [[ -n "$clash" ]]; then
+      env_remove_stack "$name" "$STACKS_DIR/$name/defaults.env"
+      rm -rf "$STACKS_DIR/$name"
+      die "port $val is already used by $clash — retry with $key=<other port>"
+    fi
+  done
+  run_hook "$name" post-install
+  ok "$name installed"
+  if [[ $start -eq 1 ]]; then
+    if ! cmd_up "$name"; then
+      warn "$name did not start — removing it again (fix the definition and retry)"
+      cmd_uninstall "$name" --purge >/dev/null 2>&1 || true
+      return 1
+    fi
+  else
+    printf 'start it with: %sinfrapack up %s%s\n' "$B" "$name" "$N"
+  fi
+}
+
+# `infrapack add NAME --image ... | --compose FILE` — the generator runs inside
+# the console image (Python), writes the stack directory into the workspace,
+# and the rest is a normal install.
+cmd_add() {
+  if [[ $# -eq 0 || "$1" == "-h" || "$1" == "--help" ]]; then
+    registry_stdin stackgen --help 2>&1 | sed 's/stackgen.py/infrapack add/' | sed 's/usage: infrapack add add/usage: infrapack add/'
+    return 0
+  fi
+  local name="$1" args=() a compose_file="" prev_flag=""
+  valid_name "$name" || die "name must be lowercase letters, digits and dashes (2-24 chars)"
+  is_installed "$name" && die "$name is already installed"
+  in_catalog "$name" && warn "'$name' is also a catalog entry — your custom definition will shadow it"
+  # a --compose FILE on the host is streamed in on stdin, the container cannot see host paths
+  local i=0 start=1
+  for a in "$@"; do
+    case "$a" in
+      --no-start) start=0; continue ;;
+    esac
+    if [[ "$prev_flag" == "--compose" && "$a" != "-" ]]; then compose_file="$a"; args+=("-"); prev_flag=""; continue; fi
+    prev_flag="$a"; args+=("$a")
+  done
+  local out
+  if [[ -n "$compose_file" ]]; then
+    [[ -f "$compose_file" ]] || die "no such file: $compose_file"
+    out="$(registry_stdin stackgen "${args[@]}" < "$compose_file")" || true
+  else
+    out="$(registry_stdin stackgen "${args[@]}")" || true
+  fi
+  if [[ "$out" == *'"ok": true'* ]]; then
+    finish_install "$name" "$start"
+  elif [[ "$out" == *'"ok": false'* ]]; then
+    die "$(printf '%s' "$out" | sed -n 's/.*"error": "\(.*\)"}.*/\1/p')"
+  else
+    printf '%s\n' "$out"      # --dry-run output or argparse help
+  fi
+}
+
+cmd_uninstall() {
+  local name="" purge=0 arg
+  for arg in "$@"; do
+    case "$arg" in
+      --purge) purge=1 ;;
+      *)       name="$(lower "$arg")" ;;
+    esac
+  done
+  [[ -n "$name" ]] || die "usage: infrapack uninstall <name> [--purge]"
+  is_installed "$name" || die "$name is not installed"
+  local svcs; svcs=($(stack_services "$name"))
+  info "removing $name"
+  dc rm -sf "${svcs[@]}" >/dev/null 2>&1 || true
+  run_hook "$name" pre-uninstall || true
+  env_remove_stack "$name" "$STACKS_DIR/$name/defaults.env"
+  rm -rf "$STACKS_DIR/$name"
+  claims_clear_tech "$name"
+  if [[ $purge -eq 1 ]]; then
+    local v
+    for v in $(docker volume ls -q --filter "name=^${PROJECT}_${name}-" 2>/dev/null); do
+      docker volume rm -f "$v" >/dev/null && ok "removed volume $v"
+    done
+  else
+    printf '%sdata volumes kept — add --purge to delete them%s\n' "$DIM" "$N"
+  fi
+  ok "$name uninstalled"
+}
+
+# ------------------------------------------------------------------ config --
+cmd_config() {
+  local sub="${1:-list}"; shift || true
+  case "$sub" in
+    list|ls)
+      grep -vE '^\s*(#|$)' "$ENV_FILE" | sed -E 's/^([A-Z0-9_]*(PASSWORD|SECRET|TOKEN)[A-Z0-9_]*=).*/\1••••••/' ;;
+    get)
+      [[ $# -ge 1 ]] || die "usage: infrapack config get KEY"
+      env_get "$1" ;;
+    set)
+      [[ $# -ge 1 ]] || die "usage: infrapack config set KEY=VALUE [KEY=VALUE...]"
+      local kv key stack touched=""
+      for kv in "$@"; do
+        [[ "$kv" =~ ^[A-Z][A-Z0-9_]*=.*$ ]] || die "bad setting '$kv' (expected KEY=VALUE)"
+        key="${kv%%=*}"
+        stack="$(setting_owner "$key")" || die "$key is not a setting of anything installed (see 'infrapack config')"
+        env_set "$key" "${kv#*=}"
+        case " $touched " in *" $stack "*) ;; *) touched="$touched $stack" ;; esac
+        ok "$key set"
+      done
+      cmd_apply $touched ;;
+    *) die "usage: infrapack config [list|get KEY|set KEY=VALUE]" ;;
+  esac
+}
+
+setting_owner() {                  # which stack declares a key ("console" for its own)
+  local key="$1" stack
+  case "$key" in CONSOLE_PORT|CONSOLE_RESTART|INFRA_RESTART|TZ) echo console; return 0 ;; esac
+  for stack in $(installed_stacks); do
+    if env_keys_in "$STACKS_DIR/$stack/defaults.env" | grep -qx "$key"; then echo "$stack"; return 0; fi
+  done
+  return 1
+}
+
+# Re-create whatever is affected by a settings change, then let the stack's
+# post-settings hook fix up anything that only reads its config at first boot.
+cmd_apply() {
+  local stack any=0
+  for stack in "$@"; do
+    if [[ "$stack" == console ]]; then
+      any=1; dc up -d console >/dev/null; continue
+    fi
+    is_installed "$stack" || continue
+    any=1
+    if running "$stack"; then
+      # shellcheck disable=SC1090
+      set -a; source "$ENV_FILE"; set +a
+      run_hook "$stack" pre-up
+      dc up -d $(stack_services "$stack")
+      # Exit 3 = the containers are fine but the stack's own fix-up failed;
+      # callers must not roll the settings back at that point.
+      run_hook "$stack" post-settings || { warn "$stack post-settings hook failed — fix and re-save, or run its sync command"; return 3; }
+    fi
+  done
+  [[ $any -eq 1 ]] && ok "applied"
+  return 0
+}
+
+# ------------------------------------------------------------------- misc --
+cmd_open() {
+  local url="http://localhost:$CONSOLE_PORT"
+  running console || cmd_up >/dev/null
+  case "$OS" in
+    Darwin) open "$url" ;;
+    *)      command -v xdg-open >/dev/null && xdg-open "$url" >/dev/null 2>&1 || echo "$url" ;;
+  esac
+}
+
+cmd_doctor() {
+  local fails=0
+  check() { if "$@" >/dev/null 2>&1; then printf '%s  ok%s %s\n' "$G" "$N" "$_label"; else printf '%s  !!%s %s\n' "$R" "$N" "$_label"; fails=$((fails+1)); fi; }
+  printf '%sInfraPack %s%s  app %s  workspace %s\n\n' "$B" "$VERSION" "$N" "$INFRAPACK_APP" "$INFRAPACK_HOME"
+  _label="bash ${BASH_VERSION%%(*}";                 check true
+  _label="docker CLI on PATH";                        check command -v docker
+  _label="docker daemon reachable";                   check docker info
+  _label="docker compose v2";                         check docker compose version
+  if docker info >/dev/null 2>&1; then
+    local engine cpus mem
+    engine="$(docker info --format '{{.OperatingSystem}}' 2>/dev/null)"
+    cpus="$(docker info --format '{{.NCPU}}' 2>/dev/null)"
+    mem="$(docker info --format '{{.MemTotal}}' 2>/dev/null)"
+    printf '     engine: %s · %s · %s vCPU · %s GiB · socket %s\n' "$engine" "$(arch_platform)" "$cpus" "$(( ${mem:-0} / 1024 / 1024 / 1024 ))" "$DOCKER_SOCK"
+    if [[ "$(arch_platform)" != linux/amd64 ]]; then
+      _label="amd64 emulation (needed by amd64-only images such as SQL Server)"; check emulation_ok linux/amd64
+    fi
+  fi
+  _label="workspace writable";                        check test -w "$INFRAPACK_HOME"
+  _label="console image present ($(console_image))"; check docker image inspect "$(console_image)"
+  _label="console running on :$CONSOLE_PORT";         check running console
+  if running console && command -v curl >/dev/null; then
+    _label="console answers";                         check curl -fsS "http://localhost:$CONSOLE_PORT/healthz"
+  fi
+  case "$OS" in Darwin)
+    _label="host agent (Docker restart from the console)"; check test -f "$INFRAPACK_HOME/installed" ;;
+  esac
+  echo
+  local n; n="$(installed_stacks | wc -l | tr -d ' ')"
+  printf '  installed: %s\n' "$( [[ "$n" -gt 0 ]] && installed_stacks | tr '\n' ' ' || echo 'nothing yet')"
+  # port clashes with things outside InfraPack
+  local key val
+  if command -v lsof >/dev/null; then
+    while IFS=$'\t' read -r val key; do
+      [[ -n "$val" ]] || continue
+      local pid; pid="$(lsof -nP -iTCP:"$val" -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
+      if [[ -n "$pid" ]]; then
+        local who; who="$(ps -o comm= -p "$pid" 2>/dev/null || true)"
+        case "$who" in *docker*|*com.docker*|*vpnkit*|*OrbStack*|*colima*|*qemu*|*limactl*) ;;
+          *) printf '%swarn%s port %s (%s) is held by %s (pid %s)\n' "$Y" "$N" "$val" "$key" "${who:-?}" "$pid" ;;
+        esac
+      fi
+    done < <(ports_in_use)
+  fi
+  [[ $fails -eq 0 ]] && ok "all good" || warn "$fails problem(s)"
+  return 0
+}
+
+cmd_update() {
+  case "$INFRAPACK_APP" in
+    */Cellar/*|*/homebrew/*) echo "installed with Homebrew — run: brew upgrade infrapack" ;;
+    *)
+      if [[ -d "$INFRAPACK_APP/.git" ]]; then
+        info "git checkout — pulling"; git -C "$INFRAPACK_APP" pull --ff-only
+      elif [[ -f "$INFRAPACK_APP/.installed-by-script" ]]; then
+        info "re-running the installer"
+        curl -fsSL https://raw.githubusercontent.com/Mostly-Works-Studio/infrapack/main/install.sh | bash
+      else
+        echo "don't know how this copy was installed — re-install from https://github.com/Mostly-Works-Studio/infrapack"
+      fi ;;
+  esac
+}
+
+cmd_rebuild() {
+  local img; img="$(console_image)"
+  info "building $img"
+  docker build -t "$img" -f "$INFRAPACK_APP/console/Dockerfile" "$INFRAPACK_APP"
+  dc up -d console
+  ok "console rebuilt and restarted"
+}
+
+# --------------------------------------------------------------- host agent --
+# The console runs in a container, so it cannot restart Docker Desktop (a mac
+# app). A launchd agent watching $INFRAPACK_HOME/inbox/request does that.
+AGENT_LABEL="studio.mostlyworks.infrapack.agent"
+cmd_agent() {
+  [[ "$OS" == Darwin ]] || die "the host agent is macOS-only (on Linux, restart Docker with systemctl)"
+  local plist="$HOME/Library/LaunchAgents/$AGENT_LABEL.plist" sub="${1:-status}"
+  case "$sub" in
+    install)
+      mkdir -p "$INFRAPACK_HOME/inbox" "$HOME/Library/LaunchAgents"
+      cp "$INFRAPACK_APP/host-agent/infrapack-agent.sh" "$INFRAPACK_HOME/agent.sh"
+      chmod +x "$INFRAPACK_HOME/agent.sh"
+      cat > "$plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>$AGENT_LABEL</string>
+  <key>ProgramArguments</key>
+  <array><string>/bin/bash</string><string>$INFRAPACK_HOME/agent.sh</string></array>
+  <key>WatchPaths</key>
+  <array><string>$INFRAPACK_HOME/inbox/request</string></array>
+  <key>RunAtLoad</key><false/>
+  <key>StandardErrorPath</key><string>$INFRAPACK_HOME/launchd.err</string>
+</dict>
+</plist>
+EOF
+      launchctl bootout "gui/$UID/$AGENT_LABEL" >/dev/null 2>&1 || true
+      launchctl bootstrap "gui/$UID" "$plist" || die "could not load the launchd agent"
+      date > "$INFRAPACK_HOME/installed"
+      ok "host agent installed — the console can now restart Docker Desktop" ;;
+    uninstall)
+      launchctl bootout "gui/$UID/$AGENT_LABEL" >/dev/null 2>&1 || true
+      rm -f "$plist" "$INFRAPACK_HOME/installed"
+      ok "host agent removed" ;;
+    status)
+      if [[ -f "$plist" ]] && launchctl print "gui/$UID/$AGENT_LABEL" >/dev/null 2>&1; then
+        ok "host agent is loaded"
+      else
+        warn "host agent is not installed — run 'infrapack agent install'"
+      fi
+      [[ -f "$INFRAPACK_HOME/status" ]] && printf '  last action: %s\n' "$(cat "$INFRAPACK_HOME/status")"
+      return 0 ;;
+    *) die "usage: infrapack agent <install|uninstall|status>" ;;
+  esac
+}
+
+# --------------------------------------------------------- stack commands --
+# A stack may ship commands.sh with cmd_<name> functions; `infrapack <stack>
+# <name>` runs them ("infrapack kafka topics", "infrapack mysql shell").
+stack_command() {
+  local stack="$1" name="${2:-}" file="$STACKS_DIR/$1/commands.sh"; shift; shift || true
+  [[ -f "$file" ]] || die "$stack has no commands — try 'infrapack exec $stack'"
+  # shellcheck disable=SC1090
+  source "$file"
+  if [[ -z "$name" || "$name" == help ]]; then
+    printf '%sinfrapack %s <command>%s\n' "$B" "$stack" "$N"
+    grep -E '^# @cmd ' "$file" | sed 's/^# @cmd /  /'
+    return 0
+  fi
+  declare -f "cmd_$name" >/dev/null || die "unknown command '$name' for $stack — 'infrapack $stack help'"
+  local any=0 svc
+  for svc in $(stack_services "$stack"); do running "$svc" && any=1; done
+  [[ $any -eq 1 ]] || die "$stack is not running — infrapack up $stack"
+  "cmd_$name" "$@"
+}
+
+usage() {
+  cat <<EOF
+${B}InfraPack${N} $VERSION — local dev infrastructure, one command
+
+${B}Usage${N}  infrapack <command> [args] [--no-ui]
+
+${B}Everyday${N}
+  up [stack...]        start installed techs (default: all) and the console
+  down [stack...]      stop (data kept); no args = all techs, "all" = console too
+  restart [stack...]   stop + start
+  status               what is running, health, ports
+  urls                 connection strings and UI links
+  logs [service]       tail logs
+  open                 open the web console
+
+${B}Techs${N}
+  catalog              what can be installed
+  install <name>       add a tech from the catalog   ${DIM}infrapack install redis REDIS_PORT=6380${N}
+  uninstall <name>     remove it (--purge deletes its data too)
+  add <name> ...       define a custom tech from any image or a compose file
+                       ${DIM}infrapack add mq --image nats:2-alpine --port 4222 --volume /data${N}
+                       ${DIM}infrapack add app --compose ./docker-compose.yml${N}
+  <stack> <command>    tech-specific helpers        ${DIM}infrapack kafka topics · infrapack mysql shell${N}
+
+${B}Sharing${N}
+  init [tech...]       write infrapack.yaml for this repo (default: what is running)
+                       ${DIM}then 'infrapack up' inside the repo starts exactly those${N}
+  export [file]        one JSON file with every installed tech and its settings
+  import <file|url>    recreate that on this machine   ${DIM}infrapack import team.json${N}
+
+${B}Settings${N}
+  config               show settings (secrets masked)
+  config set K=V...    change settings and apply them
+  reset [stack...]     stop and DELETE the data volumes
+  pull [stack...]      refresh images
+
+${B}System${N}
+  doctor               check Docker, ports, the console
+  update               update InfraPack itself
+  agent <sub>          install|uninstall|status — lets the console restart Docker Desktop (macOS)
+  exec <service> [cmd] shell into a container
+  rebuild              rebuild the console image from source (developers)
+  version
+
+Workspace: $INFRAPACK_HOME   Console: http://localhost:${CONSOLE_PORT:-7070}
+EOF
+}
+
+# -------------------------------------------------------------------- main --
+NO_UI=0 ASSUME_YES=0 FORCE=0 WITH_SECRETS=0 NO_START=0
+args=()
+for a in "$@"; do
+  case "$a" in
+    --no-ui)        NO_UI=1 ;;
+    -y|--yes)       ASSUME_YES=1 ;;
+    --force)        FORCE=1 ;;
+    --with-secrets) WITH_SECRETS=1 ;;
+    --no-start)     NO_START=1; args+=("$a") ;;   # install/add read it too
+    *) args+=("$a") ;;
+  esac
+done
+set -- "${args[@]+"${args[@]}"}"
+
+cmd="${1:-}"; shift || true
+case "$cmd" in
+  ""|help|-h|--help) ensure_workspace 2>/dev/null || true; usage; exit 0 ;;
+  version|-v|--version) echo "infrapack $VERSION"; exit 0 ;;
+esac
+
+need_docker
+ensure_workspace
+
+case "$cmd" in
+  up)                 cmd_up "$@" ;;
+  down|stop)          cmd_down "$@" ;;
+  restart)            cmd_restart "$@" ;;
+  status|ps|ls)       cmd_status "$@" ;;
+  urls|info)          cmd_urls "$@" ;;
+  logs)               cmd_logs "$@" ;;
+  pull)               cmd_pull "$@" ;;
+  reset)              cmd_reset "$@" ;;
+  open)               cmd_open ;;
+  catalog|search)     cmd_catalog ;;
+  install)            cmd_install "$@" ;;
+  uninstall|remove)   cmd_uninstall "$@" ;;
+  add)                cmd_add "$@" ;;
+  _finish-install)    finish_install "$@" ;;
+  config|settings)    cmd_config "$@" ;;
+  init)               cmd_init "$@" ;;
+  export)             cmd_export "$@" ;;
+  import)             cmd_import "$@" ;;
+  apply)              cmd_apply "$@" ;;
+  svc)                cmd_svc "$@" ;;
+  doctor)             cmd_doctor ;;
+  update|upgrade)     cmd_update ;;
+  rebuild)            cmd_rebuild ;;
+  agent)              cmd_agent "$@" ;;
+  exec|shell)         cmd_exec "$@" ;;
+  *)
+    if is_installed "$cmd"; then stack_command "$cmd" "$@"
+    else usage >&2; die "unknown command '$cmd'"; fi ;;
+esac

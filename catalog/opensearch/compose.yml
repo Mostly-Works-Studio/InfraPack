@@ -1,0 +1,42 @@
+# OpenSearch (single node, security off) + OpenSearch Dashboards. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  opensearch:
+    image: opensearchproject/opensearch:${OPENSEARCH_VERSION:-2}
+    container_name: infrapack-opensearch
+    restart: *restart
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      OPENSEARCH_JAVA_OPTS: ${OPENSEARCH_JAVA_OPTS:--Xms512m -Xmx512m}
+      cluster.name: infrapack
+    ports:
+      - "${OPENSEARCH_PORT:-9201}:9200"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://127.0.0.1:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 40s
+    networks: [infra]
+
+  opensearch-ui:
+    image: opensearchproject/opensearch-dashboards:${OPENSEARCH_UI_VERSION:-2}
+    container_name: infrapack-opensearch-ui
+    restart: *restart
+    environment:
+      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+    ports:
+      - "${OPENSEARCH_UI_PORT:-5602}:5601"
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    networks: [infra]
+
+volumes:
+  opensearch-data:

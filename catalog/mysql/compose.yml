@@ -1,0 +1,61 @@
+# MySQL + CloudBeaver (DBeaver in the browser). Managed by InfraPack.
+# UI services are named <stack>-ui so `--no-ui` can skip them.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  mysql:
+    image: mysql:${MYSQL_VERSION:-8.4}
+    container_name: infrapack-mysql
+    restart: *restart
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --log-bin-trust-function-creators=1
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-local}
+      MYSQL_USER: ${MYSQL_USER:-dev}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-dev}
+      TZ: ${TZ:-UTC}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ${INFRAPACK_HOME}/stacks/mysql/files/init:/docker-entrypoint-initdb.d:ro
+      - ${INFRAPACK_HOME}/stacks/mysql/files/conf.d:/etc/mysql/conf.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks: [infra]
+
+  mysql-ui:
+    image: dbeaver/cloudbeaver:${MYSQL_UI_VERSION:-latest}
+    container_name: infrapack-mysql-ui
+    restart: *restart
+    environment:
+      CB_SERVER_NAME: InfraPack
+      CB_SERVER_URL: http://localhost:${MYSQL_UI_PORT:-8978}
+      # Completes the first-run wizard. Must not be "admin" (built-in team).
+      CB_ADMIN_NAME: ${MYSQL_UI_ADMIN_NAME:-cbadmin}
+      CB_ADMIN_PASSWORD: ${MYSQL_UI_ADMIN_PASSWORD:-InfraPack1}
+      CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED: "true"
+      CLOUDBEAVER_APP_GRANT_CONNECTIONS_ACCESS_TO_ANONYMOUS_TEAM: "true"
+      CLOUDBEAVER_APP_SUPPORTS_CUSTOM_CONNECTIONS: "true"
+      CLOUDBEAVER_CORE_THEMING_THEME: ${MYSQL_UI_THEME:-system}
+    ports:
+      - "${MYSQL_UI_PORT:-8978}:8978"
+    volumes:
+      # Rendered by hooks/pre-up.sh from the current credentials.
+      - ${INFRAPACK_HOME}/stacks/mysql/generated/initial-data-sources.conf:/opt/cloudbeaver/conf/initial-data-sources.conf:ro
+      - mysql-ui-data:/opt/cloudbeaver/workspace
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks: [infra]
+
+volumes:
+  mysql-data:
+  mysql-ui-data:

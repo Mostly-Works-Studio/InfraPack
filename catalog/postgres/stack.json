@@ -1,0 +1,41 @@
+{
+  "stack": "postgres",
+  "label": "PostgreSQL",
+  "blurb": "Relational database · pgweb as a zero-login SQL browser",
+  "category": "database",
+  "services": [
+    {
+      "name": "postgres",
+      "label": "PostgreSQL",
+      "desc": "PostgreSQL {POSTGRES_VERSION}",
+      "facts": [
+        {"label": "Host", "value": "localhost:{POSTGRES_PORT}", "copy": true},
+        {"label": "Database", "value": "{POSTGRES_DATABASE}", "copy": true},
+        {"label": "User", "value": "{POSTGRES_USER}", "copy": true},
+        {"label": "Password", "value": "{POSTGRES_PASSWORD}", "copy": true, "secret": true},
+        {"label": "URL", "value": "postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@localhost:{POSTGRES_PORT}/{POSTGRES_DATABASE}", "copy": true, "secret": true},
+        {"label": "JDBC", "value": "jdbc:postgresql://localhost:{POSTGRES_PORT}/{POSTGRES_DATABASE}", "copy": true},
+        {"label": "In-network", "value": "postgres:5432", "copy": true}
+      ]
+    },
+    {
+      "name": "postgres-ui",
+      "label": "pgweb",
+      "ui": true,
+      "desc": "Browse tables, run SQL, export results",
+      "link": "http://localhost:{POSTGRES_UI_PORT}",
+      "facts": [
+        {"label": "Sign-in", "value": "not required (pre-connected)"}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "POSTGRES_PORT", "label": "Port", "type": "port", "group": "PostgreSQL"},
+    {"key": "POSTGRES_DATABASE", "label": "Database", "type": "text", "group": "PostgreSQL", "pattern": "[A-Za-z0-9_]{1,63}", "note": "applied on first start only"},
+    {"key": "POSTGRES_USER", "label": "User", "type": "text", "group": "PostgreSQL", "pattern": "[A-Za-z0-9_]{1,63}", "note": "applied on first start only"},
+    {"key": "POSTGRES_PASSWORD", "label": "Password", "type": "secret", "group": "PostgreSQL", "note": "applied on first start only"},
+    {"key": "POSTGRES_VERSION", "label": "Image tag", "type": "text", "group": "PostgreSQL"},
+    {"key": "POSTGRES_UI_PORT", "label": "Port", "type": "port", "group": "pgweb"},
+    {"key": "POSTGRES_UI_VERSION", "label": "Image tag", "type": "text", "group": "pgweb"}
+  ]
+}

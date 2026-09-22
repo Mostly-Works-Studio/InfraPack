@@ -1,0 +1,36 @@
+{
+  "stack": "redis",
+  "label": "Redis",
+  "blurb": "In-memory data store · key/value, pub-sub, queues · RedisInsight UI",
+  "category": "cache",
+  "services": [
+    {
+      "name": "redis",
+      "label": "Redis",
+      "desc": "Redis {REDIS_VERSION}",
+      "facts": [
+        {"label": "Host", "value": "localhost:{REDIS_PORT}", "copy": true},
+        {"label": "URL", "value": "redis://localhost:{REDIS_PORT}", "copy": true},
+        {"label": "In-network", "value": "redis:6379", "copy": true}
+      ]
+    },
+    {
+      "name": "redis-ui",
+      "label": "RedisInsight",
+      "ui": true,
+      "desc": "Browse keys, run commands, inspect memory",
+      "link": "http://localhost:{REDIS_UI_PORT}",
+      "facts": [
+        {"label": "Sign-in", "value": "not required"},
+        {"label": "Database", "value": "InfraPack Redis (pre-configured)"},
+        {"label": "Host to use", "value": "redis:6379", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "REDIS_PORT", "label": "Port", "type": "port", "group": "Redis"},
+    {"key": "REDIS_VERSION", "label": "Image tag", "type": "text", "group": "Redis"},
+    {"key": "REDIS_UI_PORT", "label": "Port", "type": "port", "group": "RedisInsight"},
+    {"key": "REDIS_UI_VERSION", "label": "Image tag", "type": "text", "group": "RedisInsight"}
+  ]
+}

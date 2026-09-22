@@ -1,0 +1,33 @@
+{
+  "stack": "elasticsearch",
+  "label": "Elasticsearch",
+  "blurb": "Search & analytics engine · single node, no auth · Kibana included",
+  "category": "search",
+  "services": [
+    {
+      "name": "elasticsearch",
+      "label": "Elasticsearch",
+      "desc": "Elasticsearch {ELASTICSEARCH_VERSION} · single node · security off",
+      "facts": [
+        {"label": "URL", "value": "http://localhost:{ELASTICSEARCH_PORT}", "copy": true},
+        {"label": "In-network", "value": "http://elasticsearch:9200", "copy": true},
+        {"label": "Auth", "value": "none"}
+      ]
+    },
+    {
+      "name": "elasticsearch-ui",
+      "label": "Kibana",
+      "ui": true,
+      "desc": "Dev Tools console, Discover, dashboards (slow first start)",
+      "link": "http://localhost:{ELASTICSEARCH_UI_PORT}",
+      "facts": [{"label": "Sign-in", "value": "not required"}]
+    }
+  ],
+  "settings": [
+    {"key": "ELASTICSEARCH_PORT", "label": "Port", "type": "port", "group": "Elasticsearch"},
+    {"key": "ELASTICSEARCH_JAVA_OPTS", "label": "JVM heap", "type": "text", "group": "Elasticsearch"},
+    {"key": "ELASTICSEARCH_VERSION", "label": "Image tag", "type": "text", "group": "Elasticsearch"},
+    {"key": "ELASTICSEARCH_UI_PORT", "label": "Port", "type": "port", "group": "Kibana"},
+    {"key": "ELASTICSEARCH_UI_VERSION", "label": "Image tag", "type": "text", "group": "Kibana"}
+  ]
+}

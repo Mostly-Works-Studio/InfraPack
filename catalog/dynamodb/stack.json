@@ -1,0 +1,33 @@
+{
+  "stack": "dynamodb",
+  "label": "DynamoDB Local",
+  "blurb": "Amazon DynamoDB, locally · dynamodb-admin as its web UI",
+  "category": "cloud",
+  "services": [
+    {
+      "name": "dynamodb",
+      "label": "DynamoDB Local",
+      "desc": "DynamoDB Local · shared db, persisted",
+      "facts": [
+        {"label": "Endpoint", "value": "http://localhost:{DYNAMODB_PORT}", "copy": true},
+        {"label": "In-network", "value": "http://dynamodb:8000", "copy": true},
+        {"label": "Credentials", "value": "any key / any secret · region us-east-1"},
+        {"label": "AWS CLI", "value": "aws --endpoint-url http://localhost:{DYNAMODB_PORT} dynamodb list-tables", "copy": true}
+      ]
+    },
+    {
+      "name": "dynamodb-ui",
+      "label": "dynamodb-admin",
+      "ui": true,
+      "desc": "Browse tables and items",
+      "link": "http://localhost:{DYNAMODB_UI_PORT}",
+      "facts": [{"label": "Sign-in", "value": "not required"}]
+    }
+  ],
+  "settings": [
+    {"key": "DYNAMODB_PORT", "label": "Port", "type": "port", "group": "DynamoDB Local"},
+    {"key": "DYNAMODB_VERSION", "label": "Image tag", "type": "text", "group": "DynamoDB Local"},
+    {"key": "DYNAMODB_UI_PORT", "label": "Port", "type": "port", "group": "dynamodb-admin"},
+    {"key": "DYNAMODB_UI_VERSION", "label": "Image tag", "type": "text", "group": "dynamodb-admin"}
+  ]
+}

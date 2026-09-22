@@ -1,0 +1,28 @@
+{
+  "stack": "rabbitmq",
+  "label": "RabbitMQ",
+  "blurb": "Message broker · AMQP · management UI built in",
+  "category": "messaging",
+  "services": [
+    {
+      "name": "rabbitmq",
+      "label": "RabbitMQ",
+      "desc": "RabbitMQ {RABBITMQ_VERSION} · management UI on :{RABBITMQ_UI_PORT}",
+      "link": "http://localhost:{RABBITMQ_UI_PORT}",
+      "facts": [
+        {"label": "AMQP", "value": "amqp://{RABBITMQ_USER}:{RABBITMQ_PASSWORD}@localhost:{RABBITMQ_PORT}", "copy": true, "secret": true},
+        {"label": "In-network", "value": "amqp://{RABBITMQ_USER}:{RABBITMQ_PASSWORD}@rabbitmq:5672", "copy": true, "secret": true},
+        {"label": "User", "value": "{RABBITMQ_USER}", "copy": true},
+        {"label": "Password", "value": "{RABBITMQ_PASSWORD}", "copy": true, "secret": true},
+        {"label": "Management UI", "value": "http://localhost:{RABBITMQ_UI_PORT}", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "RABBITMQ_PORT", "label": "AMQP port", "type": "port", "group": "RabbitMQ"},
+    {"key": "RABBITMQ_UI_PORT", "label": "Management port", "type": "port", "group": "RabbitMQ"},
+    {"key": "RABBITMQ_USER", "label": "User", "type": "text", "group": "RabbitMQ", "note": "applied on first start only"},
+    {"key": "RABBITMQ_PASSWORD", "label": "Password", "type": "secret", "group": "RabbitMQ", "note": "applied on first start only"},
+    {"key": "RABBITMQ_VERSION", "label": "Image tag", "type": "text", "group": "RabbitMQ"}
+  ]
+}

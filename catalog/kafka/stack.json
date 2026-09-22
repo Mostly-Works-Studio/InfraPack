@@ -1,0 +1,36 @@
+{
+  "stack": "kafka",
+  "label": "Kafka",
+  "blurb": "Event streaming · KRaft mode, no ZooKeeper · Kafka UI included",
+  "category": "messaging",
+  "services": [
+    {
+      "name": "kafka",
+      "label": "Kafka",
+      "desc": "Kafka {KAFKA_VERSION} · KRaft, no ZooKeeper",
+      "facts": [
+        {"label": "Bootstrap", "value": "localhost:{KAFKA_PORT}", "copy": true},
+        {"label": "In-network", "value": "kafka:9092", "copy": true},
+        {"label": "Default partitions", "value": "{KAFKA_NUM_PARTITIONS}"}
+      ]
+    },
+    {
+      "name": "kafka-ui",
+      "label": "Kafka UI",
+      "ui": true,
+      "desc": "Browse topics, messages, consumer groups",
+      "link": "http://localhost:{KAFKA_UI_PORT}",
+      "facts": [
+        {"label": "Sign-in", "value": "not required"},
+        {"label": "Cluster", "value": "local"}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "KAFKA_PORT", "label": "Port", "type": "port", "group": "Kafka"},
+    {"key": "KAFKA_NUM_PARTITIONS", "label": "Default partitions", "type": "int", "group": "Kafka"},
+    {"key": "KAFKA_VERSION", "label": "Image tag", "type": "text", "group": "Kafka"},
+    {"key": "KAFKA_UI_PORT", "label": "Port", "type": "port", "group": "Kafka UI"},
+    {"key": "KAFKA_UI_VERSION", "label": "Image tag", "type": "text", "group": "Kafka UI"}
+  ]
+}

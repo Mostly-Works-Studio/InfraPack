@@ -1,0 +1,24 @@
+{
+  "stack": "cassandra",
+  "label": "Cassandra",
+  "blurb": "Wide-column NoSQL database · single node · slow first start",
+  "category": "database",
+  "services": [
+    {
+      "name": "cassandra",
+      "label": "Cassandra",
+      "desc": "Cassandra {CASSANDRA_VERSION} · heap {CASSANDRA_HEAP}",
+      "facts": [
+        {"label": "Host", "value": "localhost:{CASSANDRA_PORT}", "copy": true},
+        {"label": "In-network", "value": "cassandra:9042", "copy": true},
+        {"label": "Datacenter", "value": "datacenter1", "copy": true},
+        {"label": "Auth", "value": "none (AllowAllAuthenticator)"}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "CASSANDRA_PORT", "label": "Port", "type": "port", "group": "Cassandra"},
+    {"key": "CASSANDRA_HEAP", "label": "Max heap", "type": "text", "group": "Cassandra"},
+    {"key": "CASSANDRA_VERSION", "label": "Image tag", "type": "text", "group": "Cassandra"}
+  ]
+}

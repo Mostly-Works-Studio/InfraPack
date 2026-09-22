@@ -1,0 +1,30 @@
+# ClickHouse — columnar analytics database. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-24}
+    container_name: infrapack-clickhouse
+    restart: *restart
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-dev}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-dev}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DATABASE:-local}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "${CLICKHOUSE_PORT:-8123}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT:-9010}:9000"
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8123/ping | grep -q Ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    networks: [infra]
+
+volumes:
+  clickhouse-data:

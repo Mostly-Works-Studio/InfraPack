@@ -1,0 +1,13 @@
+# Prometheus scrape config. Add your app's /metrics endpoint under scrape_configs
+# (use host.docker.internal:<port> to reach something running on your machine),
+# then: infrapack monitoring reload
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+  # - job_name: my-app
+  #   static_configs:
+  #     - targets: ["host.docker.internal:8080"]

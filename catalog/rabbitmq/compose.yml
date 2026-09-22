@@ -1,0 +1,26 @@
+# RabbitMQ with the management UI (same image). Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  rabbitmq:
+    image: rabbitmq:${RABBITMQ_VERSION:-4-management-alpine}
+    container_name: infrapack-rabbitmq
+    restart: *restart
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_UI_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+    networks: [infra]
+
+volumes:
+  rabbitmq-data:

@@ -1,0 +1,36 @@
+# MongoDB + Mongo Express. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  mongo:
+    image: mongo:${MONGO_VERSION:-7}
+    container_name: infrapack-mongo
+    restart: *restart
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.runCommand({ping:1}).ok' | grep -q 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    networks: [infra]
+
+  mongo-ui:
+    image: mongo-express:${MONGO_UI_VERSION:-latest}
+    container_name: infrapack-mongo-ui
+    restart: *restart
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/
+      ME_CONFIG_BASICAUTH: "false"
+    ports:
+      - "${MONGO_UI_PORT:-8083}:8081"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks: [infra]
+
+volumes:
+  mongo-data:

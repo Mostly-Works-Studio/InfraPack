@@ -1,0 +1,27 @@
+{
+  "stack": "keycloak",
+  "label": "Keycloak",
+  "blurb": "Identity provider · OpenID Connect, OAuth2, SAML · admin console built in",
+  "category": "auth",
+  "services": [
+    {
+      "name": "keycloak",
+      "label": "Keycloak",
+      "desc": "Keycloak {KEYCLOAK_VERSION} · dev mode (H2 storage)",
+      "link": "http://localhost:{KEYCLOAK_PORT}",
+      "facts": [
+        {"label": "Admin console", "value": "http://localhost:{KEYCLOAK_PORT}/admin", "copy": true},
+        {"label": "Admin", "value": "{KEYCLOAK_ADMIN}", "copy": true},
+        {"label": "Password", "value": "{KEYCLOAK_ADMIN_PASSWORD}", "copy": true, "secret": true},
+        {"label": "Issuer (master)", "value": "http://localhost:{KEYCLOAK_PORT}/realms/master", "copy": true},
+        {"label": "In-network", "value": "http://keycloak:8080", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "KEYCLOAK_PORT", "label": "Port", "type": "port", "group": "Keycloak"},
+    {"key": "KEYCLOAK_ADMIN", "label": "Admin user", "type": "text", "group": "Keycloak", "note": "applied on first start only"},
+    {"key": "KEYCLOAK_ADMIN_PASSWORD", "label": "Admin password", "type": "secret", "group": "Keycloak", "note": "applied on first start only"},
+    {"key": "KEYCLOAK_VERSION", "label": "Image tag", "type": "text", "group": "Keycloak"}
+  ]
+}

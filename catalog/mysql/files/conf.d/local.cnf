@@ -1,0 +1,9 @@
+[mysqld]
+# Relaxed settings suitable for local development only.
+max_connections         = 300
+innodb_buffer_pool_size = 512M
+sql_mode                = STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION
+local_infile            = 1
+
+[mysql]
+default-character-set = utf8mb4

@@ -1,0 +1,38 @@
+{
+  "stack": "temporal",
+  "label": "Temporal",
+  "blurb": "Durable workflow engine · own PostgreSQL · Temporal UI included",
+  "category": "workflow",
+  "services": [
+    {
+      "name": "temporal",
+      "label": "Temporal",
+      "desc": "Temporal {TEMPORAL_VERSION} · namespace \"default\"",
+      "facts": [
+        {"label": "gRPC", "value": "localhost:{TEMPORAL_PORT}", "copy": true},
+        {"label": "In-network", "value": "temporal:7233", "copy": true},
+        {"label": "Namespace", "value": "default", "copy": true}
+      ]
+    },
+    {
+      "name": "temporal-db",
+      "label": "Temporal DB",
+      "desc": "PostgreSQL used by Temporal only",
+      "facts": [{"label": "Access", "value": "internal (temporal / temporal)"}]
+    },
+    {
+      "name": "temporal-ui",
+      "label": "Temporal UI",
+      "ui": true,
+      "desc": "Workflows, schedules, task queues",
+      "link": "http://localhost:{TEMPORAL_UI_PORT}",
+      "facts": [{"label": "Sign-in", "value": "not required"}]
+    }
+  ],
+  "settings": [
+    {"key": "TEMPORAL_PORT", "label": "gRPC port", "type": "port", "group": "Temporal"},
+    {"key": "TEMPORAL_VERSION", "label": "Image tag", "type": "text", "group": "Temporal"},
+    {"key": "TEMPORAL_UI_PORT", "label": "Port", "type": "port", "group": "Temporal UI"},
+    {"key": "TEMPORAL_UI_VERSION", "label": "Image tag", "type": "text", "group": "Temporal UI"}
+  ]
+}

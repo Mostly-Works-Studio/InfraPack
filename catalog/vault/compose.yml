@@ -1,0 +1,71 @@
+# HashiCorp Vault in server mode with persistent file storage. Managed by InfraPack.
+# A tiny "vault-init" sidecar initialises it on first boot (1 key share) and
+# unseals it after every restart, so it behaves like dev mode but keeps data.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  vault:
+    image: hashicorp/vault:${VAULT_VERSION:-latest}
+    container_name: infrapack-vault
+    restart: *restart
+    command: server
+    cap_add: [IPC_LOCK]
+    environment:
+      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_LOCAL_CONFIG: >-
+        {"storage": {"file": {"path": "/vault/file"}},
+         "listener": [{"tcp": {"address": "0.0.0.0:8200", "tls_disable": true}}],
+         "api_addr": "http://vault:8200", "ui": true, "disable_mlock": true}
+    ports:
+      - "${VAULT_PORT:-8200}:8200"
+    volumes:
+      - vault-data:/vault/file
+    healthcheck:
+      # exit 0 = initialised and unsealed
+      test: ["CMD-SHELL", "vault status >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks: [infra]
+
+  vault-init:
+    image: hashicorp/vault:${VAULT_VERSION:-latest}
+    container_name: infrapack-vault-init
+    restart: *restart
+    user: "0"
+    environment:
+      VAULT_ADDR: http://vault:8200
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -u
+        K=/keys/init.json
+        while :; do
+          if vault status -format=json >/tmp/s 2>/dev/null || [ $$? -eq 2 ]; then
+            if grep -q '"initialized": false' /tmp/s; then
+              vault operator init -key-shares=1 -key-threshold=1 -format=json > $$K.tmp && mv $$K.tmp $$K && chmod 600 $$K \
+                && echo "initialised vault; keys in /keys/init.json" && touch /keys/.fresh
+            fi
+            if grep -q '"sealed": true' /tmp/s && [ -f $$K ]; then
+              key=$$(sed -n 's/.*"unseal_keys_b64": \[ *"\([^"]*\)".*/\1/p' $$K | head -1)
+              [ -z "$$key" ] && key=$$(tr -d '\n ' < $$K | sed -n 's/.*"unseal_keys_b64":\["\([^"]*\)".*/\1/p')
+              vault operator unseal "$$key" >/dev/null && echo "unsealed"
+            fi
+            # first boot only: a KV v2 store at secret/, like dev mode has
+            if [ -f /keys/.fresh ] && grep -q '"sealed": false' /tmp/s 2>/dev/null; then
+              export VAULT_TOKEN=$$(tr -d '\n ' < $$K | sed -n 's/.*"root_token":"\([^"]*\)".*/\1/p')
+              vault secrets enable -path=secret kv-v2 >/dev/null 2>&1 && echo "enabled kv-v2 at secret/" && rm -f /keys/.fresh
+            fi
+          fi
+          sleep 5
+        done
+    volumes:
+      - vault-keys:/keys
+    depends_on:
+      - vault
+    networks: [infra]
+
+volumes:
+  vault-data:
+  vault-keys:

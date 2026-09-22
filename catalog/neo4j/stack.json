@@ -1,0 +1,27 @@
+{
+  "stack": "neo4j",
+  "label": "Neo4j",
+  "blurb": "Graph database · Bolt protocol · Neo4j Browser UI built in",
+  "category": "database",
+  "services": [
+    {
+      "name": "neo4j",
+      "label": "Neo4j",
+      "desc": "Neo4j {NEO4J_VERSION} · Bolt :{NEO4J_PORT} · Browser :{NEO4J_UI_PORT}",
+      "link": "http://localhost:{NEO4J_UI_PORT}",
+      "facts": [
+        {"label": "Bolt", "value": "bolt://localhost:{NEO4J_PORT}", "copy": true},
+        {"label": "User", "value": "neo4j", "copy": true},
+        {"label": "Password", "value": "{NEO4J_PASSWORD}", "copy": true, "secret": true},
+        {"label": "In-network", "value": "bolt://neo4j:7687", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "NEO4J_PORT", "label": "Bolt port", "type": "port", "group": "Neo4j"},
+    {"key": "NEO4J_UI_PORT", "label": "Browser port", "type": "port", "group": "Neo4j"},
+    {"key": "NEO4J_PASSWORD", "label": "Password", "type": "secret", "group": "Neo4j", "note": "applied on first start only"},
+    {"key": "NEO4J_HEAP", "label": "Max heap", "type": "text", "group": "Neo4j"},
+    {"key": "NEO4J_VERSION", "label": "Image tag", "type": "text", "group": "Neo4j"}
+  ]
+}

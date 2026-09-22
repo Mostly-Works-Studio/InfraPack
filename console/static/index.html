@@ -1,0 +1,1091 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InfraPack</title>
+<style>
+  :root{
+    --nav:#141a2a; --nav-2:#1d2538; --nav-ink:#e9edf7; --nav-muted:#7f8aa8;
+    --accent:#2f7cf6; --accent-ink:#fff; --accent-soft:rgba(47,124,246,.12);
+    --bg:#f5f6fa; --panel:#fff; --ink:#151a28; --muted:#67708a; --line:#e4e7ef;
+    --ok:#16a34a; --warn:#d97706; --err:#e5484d; --off:#c7cbd6;
+    --shadow:0 1px 2px rgba(20,26,42,.05),0 1px 3px rgba(20,26,42,.07);
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --rail:250px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       -webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;cursor:pointer}
+  code,kbd{font-family:var(--mono);font-size:.92em;background:var(--accent-soft);color:var(--accent);
+           border-radius:5px;padding:1px 5px}
+
+  /* ---------------------------------------------------------- sidebar --- */
+  .app{display:flex;min-height:100vh}
+  .rail{width:var(--rail);flex:none;background:var(--nav);color:var(--nav-ink);
+        display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .brand{display:flex;align-items:center;gap:11px;padding:18px 18px 22px}
+  .logo{width:34px;height:34px;border-radius:9px;flex:none;display:grid;place-items:center;
+        background:linear-gradient(145deg,#4d93ff,#1f5fd1);box-shadow:0 2px 8px rgba(47,124,246,.45)}
+  .logo svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;
+            stroke-linecap:round;stroke-linejoin:round}
+  .brand-name{font-weight:650;letter-spacing:-.01em;font-size:15px;line-height:1.2}
+  .brand-sub{font-size:9.5px;letter-spacing:.11em;color:var(--nav-muted);text-transform:uppercase;
+             margin-top:2px}
+  .nav-group{padding:0 10px;margin-bottom:14px}
+  .nav-label{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--nav-muted);
+             padding:0 8px 7px}
+  .nav-item{position:relative;display:flex;align-items:center;gap:10px;width:100%;
+            background:none;border:0;border-radius:8px;padding:8px 10px;text-align:left;
+            color:#aeb7cf;font-size:13.5px}
+  .nav-item:hover{background:rgba(255,255,255,.05);color:var(--nav-ink)}
+  .nav-item.active{background:rgba(255,255,255,.08);color:#fff;font-weight:550}
+  .nav-item.active::before{content:"";position:absolute;left:-10px;top:7px;bottom:7px;width:3px;
+                           background:var(--accent);border-radius:0 3px 3px 0}
+  .nav-item svg{width:15px;height:15px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;
+                stroke-linecap:round;stroke-linejoin:round}
+  .badge{margin-left:auto;font-size:11px;min-width:20px;text-align:center;border-radius:999px;
+         padding:1px 7px;background:rgba(255,255,255,.1);color:var(--nav-ink)}
+  .badge.live{background:var(--accent);color:#fff}
+  .rail-foot{margin-top:auto;padding:14px}
+  .rail-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+            background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);
+            border-radius:9px;padding:10px;color:var(--nav-ink);font-size:12.5px}
+  .rail-btn:hover:not(:disabled){background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.2)}
+  .rail-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.9;
+                stroke-linecap:round;stroke-linejoin:round}
+  .rail-note{font-size:11px;color:var(--nav-muted);text-align:center;margin-top:10px;line-height:1.5}
+  .rail-note b{color:#aeb7cf;font-weight:500}
+
+  /* ------------------------------------------------------------- main --- */
+  .main{flex:1;min-width:0;padding:30px 34px 96px;max-width:1180px}
+  .crumb{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+         color:var(--accent);font-weight:600;margin-bottom:9px}
+  h1{font-size:26px;margin:0 0 7px;letter-spacing:-.02em;font-weight:680}
+  h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px;
+     display:flex;align-items:center;gap:9px}
+  h3 .n{font-family:var(--mono);font-weight:500;letter-spacing:0;text-transform:none}
+  .page-head{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  .page-head .head-actions{margin-left:auto;display:flex;gap:8px;padding-top:24px}
+  .lede{color:var(--muted);font-size:13.5px;margin:0 0 20px;max-width:72ch}
+  .note{font-size:12px;color:var(--muted)}
+
+  .strip{background:var(--nav);color:var(--nav-ink);border-radius:11px;padding:13px 16px;
+         display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+  .strip .pill{background:rgba(255,255,255,.08);border-radius:7px;padding:4px 10px;
+               font-family:var(--mono);font-size:11.5px}
+  .strip .pill.on{background:var(--accent);color:#fff}
+  .strip .arrow{color:var(--nav-muted);font-size:12px}
+  .strip-note{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--nav-muted);
+              text-align:right}
+  .strip-note b{color:#fff;font-weight:600}
+  .meter{width:74px;height:6px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden;flex:none}
+  .meter i{display:block;height:100%;background:var(--accent);border-radius:4px;transition:width .4s}
+  .meter i.warn{background:var(--warn)} .meter i.hot{background:var(--err)}
+
+  /* ------------------------------------------------------------ cards --- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;
+        box-shadow:var(--shadow);display:flex;flex-direction:column}
+  .card.busy{opacity:.6}
+  .skel{height:150px;border-style:dashed;position:relative;overflow:hidden}
+  .skel::after{content:"";position:absolute;inset:0;
+               background:linear-gradient(90deg,transparent,rgba(47,124,246,.07),transparent);
+               animation:sweep 1.3s infinite}
+  @keyframes sweep{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .card-head{display:flex;align-items:center;gap:10px;padding:13px 15px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--off);flex:none}
+  .dot.up{background:var(--ok)}
+  .dot.starting{background:var(--warn);animation:pulse 1.2s infinite}
+  .dot.unhealthy,.dot.exited{background:var(--err)}
+  @keyframes pulse{50%{opacity:.35}}
+  .card-title{min-width:0;flex:1}
+  .name{font-weight:620;letter-spacing:-.01em;line-height:1.25}
+  .desc{color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ctl{display:flex;align-items:center;gap:5px;flex:none}
+
+  .switch{position:relative;width:34px;height:20px;border-radius:999px;background:var(--off);
+          border:0;padding:0;flex:none;transition:background .16s}
+  .switch.on{background:var(--accent)}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;
+                 border-radius:50%;background:#fff;transition:transform .16s;
+                 box-shadow:0 1px 2px rgba(0,0,0,.25)}
+  .switch.on::after{transform:translateX(14px)}
+  .switch:disabled{cursor:progress;opacity:.6}
+
+  .icon{background:none;border:0;padding:4px;border-radius:6px;color:var(--muted);
+        display:inline-flex;line-height:0}
+  .icon:hover:not(:disabled){background:var(--bg);color:var(--ink)}
+  .icon:disabled{opacity:.3;cursor:not-allowed}
+  .icon svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.9;
+            stroke-linecap:round;stroke-linejoin:round}
+  .icon.done{color:var(--ok)}
+
+  .facts{border-top:1px solid var(--line);padding:7px 15px;flex:1}
+  .fact{display:flex;align-items:center;gap:8px;min-height:25px}
+  .fact .k{color:var(--muted);font-size:11.5px;width:104px;flex:none}
+  .fact .v{font-family:var(--mono);font-size:11.5px;flex:1;min-width:0;
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fact.open .v{white-space:normal;word-break:break-all}
+  .fact .tools{display:flex;flex:none;opacity:.5;transition:opacity .12s}
+  .fact:hover .tools,.fact.open .tools{opacity:1}
+  .card-foot{display:flex;align-items:center;gap:9px;border-top:1px solid var(--line);
+             padding:9px 15px;background:#fbfbfd;border-radius:0 0 11px 11px;margin-top:auto}
+  a.open{display:inline-flex;align-items:center;gap:5px;color:var(--accent);text-decoration:none;
+         font-size:12px;font-weight:550}
+  a.open:hover{text-decoration:underline}
+  a.open svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;
+             stroke-linecap:round;stroke-linejoin:round}
+  .usage{font-family:var(--mono);font-size:10.5px;color:var(--muted);white-space:nowrap}
+  .usage b{font-weight:600;color:var(--ink)}
+  .state{margin-left:auto;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .stack-head{display:flex;align-items:center;gap:9px;margin:22px 0 10px}
+  .stack-head:first-child{margin-top:0}
+  .stack-head .t{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .stack-head .tools{margin-left:auto;display:flex;gap:4px}
+  .tiny{font-size:11.5px;background:none;border:1px solid var(--line);border-radius:7px;padding:3px 9px;
+        color:var(--muted)}
+  .tiny:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  .tiny:disabled{opacity:.4;cursor:not-allowed}
+  .modes{display:flex;gap:4px;margin-left:12px}
+  .tiny.mode.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+  /* -------------------------------------------------------------- empty --- */
+  .empty{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:40px 30px;
+         text-align:center}
+  .empty h2{margin:0 0 6px;font-size:17px}
+  .empty p{margin:0 auto 18px;color:var(--muted);max-width:54ch;font-size:13px}
+
+  /* ------------------------------------------------------------ catalog --- */
+  .tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-bottom:20px}
+  .tpl{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px;
+       text-align:left;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:5px;position:relative}
+  .tpl:hover:not(:disabled){border-color:var(--accent)}
+  .tpl.sel{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .tpl.installed{opacity:.55}
+  .tpl .t{font-weight:620;font-size:13.5px;display:flex;gap:7px;align-items:center}
+  .tpl .b{font-size:11.5px;color:var(--muted);line-height:1.45}
+  .tpl .i{font-family:var(--mono);font-size:10.5px;color:var(--accent);margin-top:2px}
+  .chip{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;border-radius:5px;padding:1px 6px;
+        background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .chip.ok{background:rgba(22,163,74,.12);color:var(--ok)}
+  .chip.warn{background:rgba(217,119,6,.12);color:var(--warn)}
+  .addcard{border:1.5px dashed var(--line);border-radius:11px;background:none;color:var(--muted);
+           min-height:120px;display:flex;align-items:center;justify-content:center;gap:7px;
+           font-size:13px;font-weight:550}
+  .addcard:hover{border-color:var(--accent);color:var(--accent)}
+  .addcard svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+  .search{width:100%;max-width:380px;margin-bottom:14px}
+
+  /* --------------------------------------------------------- settings --- */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:11px;
+         box-shadow:var(--shadow);margin-bottom:13px}
+  .panel-head{display:flex;align-items:center;gap:9px;padding:12px 15px;border-bottom:1px solid var(--line)}
+  .panel-head h2{font-size:13.5px;margin:0;font-weight:620}
+  .tag{font-family:var(--mono);font-size:10.5px;background:var(--accent-soft);color:var(--accent);
+       border-radius:6px;padding:2px 7px;margin-left:auto}
+  .rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:11px;padding:14px 15px}
+  label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted)}
+  label .hint{font-size:10.5px;opacity:.8}
+  .inp{position:relative;display:flex;align-items:center}
+  input,select,textarea{font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;
+        background:#fbfbfd;color:var(--ink);width:100%}
+  textarea{font-family:var(--mono);font-size:12px;min-height:90px;resize:vertical}
+  input[type=password]{font-family:var(--mono);letter-spacing:.09em}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent;background:#fff}
+  input.dirty,select.dirty{border-color:var(--warn);background:#fffbf4}
+  .inp .icon{position:absolute;right:4px}
+  .inp.has-eye input{padding-right:28px}
+
+  /* ----------------------------------------------------------- docker --- */
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:13px;padding:15px}
+  .stat{background:#fbfbfd;border:1px solid var(--line);border-radius:9px;padding:12px 13px}
+  .stat .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+  .stat .val{font-size:19px;font-weight:650;letter-spacing:-.02em;margin-top:3px}
+  .stat .sub{font-size:11px;color:var(--muted);font-family:var(--mono)}
+  .kv{padding:0 15px 15px;font-size:12.5px;color:var(--muted);line-height:1.6}
+  .kv b{color:var(--ink);font-weight:550}
+
+  /* --------------------------------------------------------- save bar --- */
+  .savebar{position:fixed;left:var(--rail);right:0;bottom:0;z-index:8;background:rgba(255,255,255,.92);
+           backdrop-filter:blur(8px);border-top:1px solid var(--line);
+           display:flex;align-items:center;gap:11px;padding:12px 34px}
+  .savebar[hidden]{display:none}
+  .unsaved{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+  .unsaved::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--warn)}
+  .btn{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 15px;
+       font-size:13px;box-shadow:var(--shadow)}
+  .btn:hover:not(:disabled){border-color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:550}
+  .btn.primary:hover{filter:brightness(1.07)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .savebar .right{margin-left:auto;display:flex;gap:9px}
+
+  pre{font-family:var(--mono);font-size:11px;white-space:pre-wrap;color:var(--muted);
+      background:#fbfbfd;border:1px solid var(--line);border-radius:9px;padding:11px;
+      margin:13px 0 0;max-height:190px;overflow:auto}
+  pre.logs{max-height:70vh;background:#0f1320;color:#d5dbe8;border-color:#0f1320;margin:0}
+  #toast{position:fixed;left:calc(var(--rail) + 34px);bottom:74px;z-index:10;background:var(--nav);
+         color:var(--nav-ink);border-radius:9px;padding:10px 15px;font-size:12.5px;display:none;
+         box-shadow:0 10px 30px rgba(20,26,42,.28);max-width:520px}
+  #toast.err{background:var(--err)} #toast.ok{background:#16603a}
+  #veil{position:fixed;inset:0;z-index:20;background:rgba(20,26,42,.75);backdrop-filter:blur(3px);
+        display:none;align-items:center;justify-content:center}
+  #veil.on{display:flex}
+  .veil-card{background:var(--panel);border-radius:12px;padding:22px 26px;text-align:center;
+             max-width:340px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+  .veil-card h2{margin:0 0 6px;font-size:15px}
+  .veil-card p{margin:0;color:var(--muted);font-size:12.5px}
+  .bar{height:3px;border-radius:3px;background:var(--line);margin-top:14px;overflow:hidden}
+  .bar i{display:block;height:100%;width:38%;background:var(--accent);animation:slide 1.1s ease-in-out infinite}
+  @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}
+
+  @media (max-width:860px){
+    :root{--rail:0px}
+    .app{flex-direction:column}
+    .rail{position:static;width:auto;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px}
+    .brand{padding:0;margin-right:auto}
+    .nav-group{margin:0;padding:0;display:flex;gap:5px}
+    .nav-label,.rail-note{display:none}
+    .nav-item.active::before{display:none}
+    .rail-foot{margin:0;padding:0}
+    .main{padding:20px 16px 96px}
+    .savebar{left:0;padding:11px 16px}
+    #toast{left:16px;right:16px}
+    .fact .k{width:88px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <span class="logo"><svg viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/></svg></span>
+      <div>
+        <div class="brand-name">InfraPack</div>
+        <div class="brand-sub" id="verTag">local dev infra</div>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">Workspace</div>
+      <button class="nav-item active" data-view="services">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></svg>
+        Installed <span class="badge" id="runBadge">0</span>
+      </button>
+      <button class="nav-item" data-view="catalog">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>
+        Catalog
+      </button>
+      <button class="nav-item" data-view="settings">
+        <svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/></svg>
+        Settings <span class="badge" id="dirtyBadge" hidden></span>
+      </button>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">System</div>
+      <button class="nav-item" data-view="logs">
+        <svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h10M4 19h13"/></svg>
+        Logs
+      </button>
+      <button class="nav-item" data-view="docker">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg>
+        Docker <span class="badge" id="vmBadge"></span>
+      </button>
+    </div>
+
+    <div class="rail-foot">
+      <button class="rail-btn" id="dockerBtn" hidden>
+        <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+        Restart Docker
+      </button>
+      <div class="rail-note">console always on · <b>techs on demand</b></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- ------------------------------------------------------- installed -->
+    <section class="view" id="view-services">
+      <div class="page-head">
+        <div>
+          <div class="crumb">InfraPack · Workspace</div>
+          <h1>Installed</h1>
+        </div>
+        <div class="head-actions" id="bulk">
+          <button class="btn" data-all="up">Start all</button>
+          <button class="btn" data-all="restart">Restart all</button>
+          <button class="btn" data-all="down">Stop all</button>
+        </div>
+      </div>
+      <p class="lede">Toggle each piece on only when you need it. Stopped services stay stopped across
+        restarts; the console is the only thing that comes back by itself.</p>
+      <div class="strip" id="strip"></div>
+      <div id="cards">
+        <div class="grid"><div class="card skel"></div><div class="card skel"></div><div class="card skel"></div></div>
+      </div>
+    </section>
+
+    <!-- --------------------------------------------------------- catalog -->
+    <section class="view" id="view-catalog" hidden>
+      <div class="crumb">InfraPack · Workspace</div>
+      <h1>Catalog</h1>
+      <p class="lede">Pick a tech to install it with sensible defaults and a web UI where one exists.
+        Ports can be changed before installing, or later in Settings. Not here? Add any image as a custom tech.</p>
+      <input class="search" id="catSearch" placeholder="Search the catalog…" autocomplete="off" spellcheck="false">
+      <div class="tpl-grid" id="templates"></div>
+
+      <div class="panel" id="installPanel" hidden>
+        <div class="panel-head"><h2 id="formTitle"></h2><span class="tag" id="formTag">install</span></div>
+        <div class="rows" id="addRows"></div>
+        <div class="rows" style="padding-top:0">
+          <div style="grid-column:1/-1;display:flex;gap:9px;align-items:center;flex-wrap:wrap">
+            <button class="btn primary" id="addBtn">Install</button>
+            <button class="btn" id="addResetBtn">Cancel</button>
+            <span class="note" id="addNote"></span>
+            <span class="note" style="margin-left:auto">Enter to install</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="customPanel" hidden>
+        <div class="panel-head"><h2>Custom tech</h2>
+          <span class="modes">
+            <button class="tiny mode active" data-mode="form">Describe an image</button>
+            <button class="tiny mode" data-mode="paste">Paste a compose file</button>
+          </span>
+          <span class="tag">any image</span></div>
+        <div class="rows" id="customRows"></div>
+        <div class="rows" style="padding-top:0">
+          <div style="grid-column:1/-1;display:flex;gap:9px;align-items:center;flex-wrap:wrap">
+            <button class="btn primary" id="customBtn">Add &amp; start</button>
+            <button class="btn" id="previewBtn">Preview</button>
+            <button class="btn" id="customResetBtn">Cancel</button>
+            <span class="note" id="customNote"></span>
+            <span class="note" style="margin-left:auto">Every host port and image tag becomes a setting you can change later</span>
+          </div>
+        </div>
+        <pre id="previewOut" hidden style="margin:0 15px 15px"></pre>
+      </div>
+      <pre id="addOut" hidden></pre>
+    </section>
+
+    <!-- ------------------------------------------------------- settings -->
+    <section class="view" id="view-settings" hidden>
+      <div class="crumb">InfraPack · Configuration</div>
+      <h1>Settings</h1>
+      <p class="lede">Edit a value and save. Only the affected services are recreated, and techs that
+        only read their config on first start (MySQL credentials) are updated live where InfraPack knows how.</p>
+      <div id="groups"></div>
+      <pre id="out" hidden></pre>
+    </section>
+
+    <!-- ------------------------------------------------------------ logs -->
+    <section class="view" id="view-logs" hidden>
+      <div class="page-head">
+        <div>
+          <div class="crumb">InfraPack · System</div>
+          <h1>Logs</h1>
+        </div>
+        <div class="head-actions">
+          <select id="logSvc" style="width:auto"></select>
+          <button class="btn" id="logRefresh">Refresh</button>
+        </div>
+      </div>
+      <p class="lede">The last 300 lines of a container. For a live tail, use
+        <code>infrapack logs &lt;service&gt;</code> in a terminal.</p>
+      <pre class="logs" id="logOut">pick a service</pre>
+    </section>
+
+    <!-- --------------------------------------------------------- docker -->
+    <section class="view" id="view-docker" hidden>
+      <div class="crumb">InfraPack · System</div>
+      <h1>Docker</h1>
+      <p class="lede">The engine everything runs inside, and what your workspace is using of it right now.</p>
+      <div class="panel">
+        <div class="panel-head"><h2>Resources</h2><span class="tag" id="sampleTag">live</span></div>
+        <div class="stat-row" id="stats"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Engine</h2></div>
+        <div class="kv" id="engineInfo"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Workspace</h2></div>
+        <div class="kv" id="wsInfo"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Share this setup</h2><span class="tag">team</span></div>
+        <div class="kv">Export every installed tech and its settings as one file. A new joiner imports it and gets the
+          same infrastructure; catalog techs are installed by name, custom ones travel with their definition.
+          Secrets are masked unless you tick the box.</div>
+        <div class="rows" style="padding-top:0">
+          <div style="grid-column:1/-1;display:flex;gap:9px;align-items:center;flex-wrap:wrap">
+            <a class="btn primary" id="exportBtn" href="/api/export" download="infrapack-export.json">Export</a>
+            <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="exportSecrets" style="width:auto"> include secrets</label>
+            <span style="flex:1"></span>
+            <button class="btn" id="importBtn">Import a file…</button>
+            <input type="file" id="importFile" accept="application/json,.json" hidden>
+            <span class="note" id="importNote"></span>
+          </div>
+        </div>
+        <pre id="importOut" hidden style="margin:0 15px 15px"></pre>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="savebar" id="savebar" hidden>
+  <span class="unsaved" id="dirtyNote"></span>
+  <div class="right">
+    <button class="btn" id="discardBtn">Discard</button>
+    <button class="btn primary" id="saveBtn">Save changes</button>
+  </div>
+</div>
+
+<div id="veil"><div class="veil-card">
+  <h2 id="veilTitle">Restarting Docker…</h2>
+  <p id="veilText">The console will reconnect by itself.</p>
+  <div class="bar"><i></i></div>
+</div></div>
+<div id="toast"></div>
+
+<script>
+const I = {
+  copy:'<svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+  check:'<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
+  eye:'<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+  eyeOff:'<svg viewBox="0 0 24 24"><path d="m3 3 18 18"/><path d="M10.6 5.2A11 11 0 0 1 12 5c6.4 0 10 7 10 7a18.4 18.4 0 0 1-3.2 4.2M6.2 6.2A18.1 18.1 0 0 0 2 12s3.6 7 10 7a11 11 0 0 0 4.2-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',
+  restart:'<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>',
+  trash:'<svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>',
+  plus:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  ext:'<svg viewBox="0 0 24 24"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>',
+  logs:'<svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h10M4 19h13"/></svg>'
+};
+
+let STATE = null, dirty = {}, polling = null, view = "services";
+let CATALOG = [], picked = null, form = {}, custom = null, catQuery = "";
+const shown = new Set(), pending = new Set(), revealed = new Set();
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtMem = mb => mb == null ? "–"
+  : mb >= 1024 ? (mb / 1024).toFixed(mb >= 10240 ? 0 : 1) + " GB" : Math.round(mb) + " MB";
+const fmtCpu = c => c == null ? "–" : (c < 10 ? c.toFixed(2) : c.toFixed(1)) + "%";
+const allStacks = () => STATE ? STATE.stacks.map(s => s.name) : [];
+
+function toast(msg, kind){
+  const t = $("#toast");
+  t.textContent = msg; t.className = kind || "";
+  t.style.display = "block";
+  clearTimeout(t._t); t._t = setTimeout(() => t.style.display = "none", kind === "err" ? 8000 : 3000);
+}
+
+async function api(path, body){
+  const r = await fetch(path, body ? {
+    method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)
+  } : undefined);
+  const data = await r.json().catch(() => ({}));
+  if(!r.ok) throw new Error(data.error || ("HTTP " + r.status));
+  return data;
+}
+
+async function load(){
+  try{ STATE = await api("/api/state"); render(); }
+  catch(e){ toast("cannot reach the console: " + e.message, "err"); }
+}
+
+const dotClass = s => s.state !== "running"
+  ? (s.state === "exited" ? "exited" : "")
+  : (s.health === "starting" ? "starting" : s.health === "unhealthy" ? "unhealthy" : "up");
+const stateText = s => s.state !== "running"
+  ? (s.state === "absent" ? "stopped" : s.state)
+  : (s.health && s.health !== "healthy" ? s.health : "running");
+
+function factRow(card, i, f){
+  const id = card.key + ":" + i, open = shown.has(id);
+  const long = String(f.value).length > 26;
+  const text = f.secret && !open ? "•".repeat(Math.min(14, String(f.value).length)) : f.value;
+  const eye = (f.secret || long)
+    ? `<button class="icon" data-act="eye" data-id="${id}" title="${open ? "Hide" : "Show full"}">${open ? I.eyeOff : I.eye}</button>` : "";
+  const copy = f.copy
+    ? `<button class="icon" data-act="copy" data-card="${card.key}" data-i="${i}" title="Copy">${I.copy}</button>` : "";
+  return `<div class="fact ${open ? "open" : ""}">
+    <span class="k">${esc(f.label)}</span>
+    <span class="v">${esc(text)}</span>
+    <span class="tools">${eye}${copy}</span>
+  </div>`;
+}
+
+// Each region re-renders only when its own inputs change, so the poll never
+// steals focus or restarts an animation.
+const sig = {};
+function changed(key, value){
+  const next = JSON.stringify(value);
+  if(sig[key] === next) return false;
+  sig[key] = next;
+  return true;
+}
+const editing = el => el && el.contains(document.activeElement);
+
+function render(){
+  if(!STATE) return;
+  const running = STATE.services.filter(s => s.up).length;
+  renderBadges(running);
+  renderStrip();
+  renderCards();
+  renderSettings();
+  renderLogsPicker();
+  renderDocker(running);
+  updateDirty();
+}
+
+function renderBadges(running){
+  if(!changed("badge", [running, STATE.services.length, STATE.version])) return;
+  const badge = $("#runBadge");
+  badge.textContent = `${running}/${STATE.services.length}`;
+  badge.classList.toggle("live", running > 0);
+  $("#verTag").textContent = "v" + STATE.version;
+  $("#bulk").hidden = STATE.stacks.length === 0;
+}
+
+function renderStrip(){
+  const u = STATE.usage, cap = STATE.docker && STATE.docker.memMB;
+  if(!changed("strip", [u, cap])) return;
+  const pct = (u && cap) ? Math.min(100, (u.memMB / cap) * 100) : 0;
+  const cls = pct > 85 ? "hot" : pct > 65 ? "warn" : "";
+  $("#strip").innerHTML = u && u.count
+    ? `<span class="meter"><i class="${cls}" style="width:${pct.toFixed(1)}%"></i></span>
+       <span class="pill on">${fmtMem(u.memMB)}</span>
+       <span class="arrow">of</span>
+       <span class="pill">${cap ? fmtMem(cap) : "–"}</span>
+       <span class="pill">${fmtCpu(u.cpu)} CPU</span>
+       <span class="strip-note">${u.count} container${u.count === 1 ? "" : "s"} running ·
+         <b>${STATE.docker ? STATE.docker.cpus : "?"}</b> vCPU</span>`
+    : `<span class="pill">idle</span>
+       <span class="strip-note">nothing running · toggle a service to start it</span>`;
+}
+
+function cardHtml(s){
+  const busy = pending.has(s.key) || pending.has(s.stack);
+  return `<div class="card ${busy ? "busy" : ""}">
+    <div class="card-head">
+      <span class="dot ${dotClass(s)}"></span>
+      <div class="card-title">
+        <div class="name">${esc(s.name)}</div>
+        <div class="desc">${esc(s.desc)}</div>
+      </div>
+      <div class="ctl">
+        <button class="icon" data-act="logs" data-svc="${s.key}" title="Logs" ${s.up ? "" : "disabled"}>${I.logs}</button>
+        <button class="icon" data-act="restart" data-svc="${s.key}" title="Restart"
+                ${s.up && !busy ? "" : "disabled"}>${I.restart}</button>
+        <button class="switch ${s.up ? "on" : ""}" data-act="toggle" data-svc="${s.key}"
+                role="switch" aria-checked="${s.up}" aria-label="${esc(s.name)}"
+                title="${s.up ? "Stop" : "Start"} ${esc(s.name)}" ${busy ? "disabled" : ""}></button>
+      </div>
+    </div>
+    <div class="facts">${s.facts.map((f, i) => factRow(s, i, f)).join("")}</div>
+    <div class="card-foot">
+      ${s.link && s.up ? `<a class="open" href="${esc(s.link)}" target="_blank" rel="noopener">Open ${I.ext}</a>` : ""}
+      ${s.usage ? `<span class="usage">${fmtCpu(s.usage.cpu)} · <b>${fmtMem(s.usage.memMB)}</b></span>` : ""}
+      <span class="state">${busy ? "working…" : esc(stateText(s))}</span>
+    </div>
+  </div>`;
+}
+
+function renderCards(){
+  if(!changed("cards", [STATE.services, STATE.stacks, [...pending], [...shown]])) return;
+  if(!STATE.stacks.length){
+    $("#cards").innerHTML = `<div class="empty">
+      <h2>Nothing installed yet</h2>
+      <p>Your workspace is empty. Pick what this machine needs from the catalog — a database, a broker,
+         a cache — and InfraPack starts it with a web UI and copy-ready connection strings.</p>
+      <button class="btn primary" data-view="catalog">Browse the catalog</button>
+      <p class="note" style="margin:14px 0 0">or in a terminal: <code>infrapack catalog</code></p>
+    </div>`;
+    return;
+  }
+  $("#cards").innerHTML = STATE.stacks.map(st => {
+    const svcs = STATE.services.filter(s => s.stack === st.name);
+    const busy = pending.has(st.name);
+    const up = svcs.filter(s => s.up).length;
+    return `<div class="stack-head">
+        <span class="t">${esc(st.label)}</span>
+        ${st.custom ? `<span class="chip">custom</span>` : ""}
+        <span class="note">${up}/${svcs.length} running</span>
+        <span class="tools">
+          <button class="tiny" data-stack-act="${up ? "down" : "up"}" data-stack="${st.name}" ${busy ? "disabled" : ""}>
+            ${up ? "Stop" : "Start"} ${esc(st.label)}</button>
+          <button class="tiny" data-act="rm" data-stack="${st.name}" title="Uninstall" ${busy ? "disabled" : ""}>Uninstall</button>
+        </span>
+      </div>
+      <div class="grid">${svcs.map(cardHtml).join("")}</div>`;
+  }).join("") + `<div class="grid" style="margin-top:14px"><button class="addcard" data-view="catalog">${I.plus} Install another tech</button></div>`;
+}
+
+function renderSettings(){
+  const host = $("#groups");
+  if(editing(host)) return;
+  if(!changed("settings", [STATE.fields, dirty, [...revealed]])) return;
+  if(!STATE.fields.length){ host.innerHTML = ""; return; }
+  const groups = {};
+  STATE.fields.forEach(f => (groups[f.group] = groups[f.group] || []).push(f));
+  host.innerHTML = Object.entries(groups).map(([g, fs]) => `
+    <div class="panel">
+      <div class="panel-head">
+        <h2>${esc(g)}</h2>
+        <span class="tag">${esc(fs[0].stack)}</span>
+      </div>
+      <div class="rows">
+        ${fs.map(f => {
+          const secret = f.type === "secret", show = revealed.has(f.key);
+          const val = dirty[f.key] ?? f.value;
+          const cls = dirty[f.key] !== undefined ? "dirty" : "";
+          let control;
+          if(f.type === "choice"){
+            control = `<select data-key="${f.key}" class="${cls}">${f.choices.map(c =>
+              `<option value="${esc(c)}" ${c === val ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>`;
+          } else {
+            control = `<input data-key="${f.key}" value="${esc(val)}"
+                     type="${secret && !show ? "password" : "text"}" class="${cls}"
+                     inputmode="${f.type === "port" || f.type === "int" ? "numeric" : "text"}"
+                     autocomplete="off" spellcheck="false">
+              ${secret ? `<button class="icon" data-act="reveal" data-key="${f.key}" type="button"
+                          title="${show ? "Hide" : "Show"}">${show ? I.eyeOff : I.eye}</button>` : ""}`;
+          }
+          return `<label>${esc(f.label)}${f.note ? ` <span class="hint">· ${esc(f.note)}</span>` : ""}
+            <span class="inp ${secret ? "has-eye" : ""}">${control}</span>
+          </label>`;
+        }).join("")}
+      </div>
+    </div>`).join("");
+}
+
+function renderLogsPicker(){
+  const names = ["console", ...STATE.services.map(s => s.key)];
+  if(!changed("logsvc", names)) return;
+  const sel = $("#logSvc"), cur = sel.value;
+  sel.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join("");
+  if(names.includes(cur)) sel.value = cur;
+}
+
+async function showLogs(svc){
+  if(svc){ $("#logSvc").value = svc; }
+  setView("logs");
+  const name = $("#logSvc").value;
+  $("#logOut").textContent = "loading…";
+  try{
+    const r = await api("/api/logs", {service: name, tail: 300});
+    $("#logOut").textContent = r.output || "(no output)";
+    $("#logOut").scrollTop = $("#logOut").scrollHeight;
+  }catch(e){ $("#logOut").textContent = e.message; }
+}
+
+function renderDocker(running){
+  const vm = STATE.docker, u = STATE.usage;
+  if(!changed("docker", [vm, u, running, STATE.agentStatus, STATE.dockerControl, STATE.home, STATE.hostOS])) return;
+  const cap = vm && vm.memMB;
+  const pct = (u && cap) ? Math.min(100, (u.memMB / cap) * 100) : 0;
+  $("#vmBadge").textContent = vm ? vm.memGiB + "G" : "–";
+  $("#stats").innerHTML = `
+    <div class="stat"><div class="lbl">Memory</div>
+      <div class="val">${vm ? vm.memGiB + " GiB" : "–"}</div>
+      <div class="sub">${u ? fmtMem(u.memMB) + " in use" : "idle"}</div></div>
+    <div class="stat"><div class="lbl">CPUs</div>
+      <div class="val">${vm ? vm.cpus : "–"}</div>
+      <div class="sub">${u ? fmtCpu(u.cpu) + " in use" : "idle"}</div></div>
+    <div class="stat"><div class="lbl">Containers</div>
+      <div class="val">${running}<span style="font-size:13px;color:var(--muted)"> / ${STATE.services.length}</span></div>
+      <div class="sub">plus the console</div></div>
+    <div class="stat"><div class="lbl">Headroom</div>
+      <div class="val">${vm && u ? fmtMem(Math.max(0, vm.memMB - u.memMB)) : "–"}</div>
+      <div class="sub">${pct ? pct.toFixed(0) + "% used" : "—"}</div></div>`;
+
+  const ag = STATE.agentStatus;
+  const mac = STATE.hostOS === "Darwin";
+  $("#engineInfo").innerHTML = `Engine: <b>${esc(vm ? vm.engine : "?")}</b> on <b>${esc(STATE.hostOS)}</b>.<br>` + (STATE.dockerControl
+    ? `The host agent is installed, so the console can restart Docker Desktop with <b>Restart Docker</b> in the sidebar.
+       Running services stop and stay stopped; the console comes back on its own.
+       ${ag ? `<br>Last action: <b>${esc(ag.message)}</b> (${esc(ag.at.replace("T", " "))})` : ""}`
+    : mac ? `To restart Docker Desktop from here, run <code>infrapack agent install</code> once.`
+          : `Restart the engine from the host when needed (<code>systemctl restart docker</code>).`);
+  $("#wsInfo").innerHTML = `Workspace: <b>${esc(STATE.home)}</b> — settings in <code>.env</code>, installed techs under <code>stacks/</code>.<br>
+    InfraPack <b>v${esc(STATE.version)}</b> · check everything with <code>infrapack doctor</code>.`;
+  $("#dockerBtn").hidden = !STATE.dockerControl;
+  $("#sampleTag").textContent = STATE.sampledAt ? "live · 5s" : "no data";
+}
+
+// ------------------------------------------------------------ catalog -----
+async function loadCatalog(){
+  try{ CATALOG = await api("/api/catalog"); renderCatalog(); }catch(e){ /* non-fatal */ }
+}
+
+const portLabel = k => k.replace(/^[A-Z0-9]+_/, "").replace(/_/g, " ").toLowerCase();
+
+const CATEGORIES = {database:"Databases", cache:"Caches", messaging:"Messaging & streaming", search:"Search",
+  storage:"Object storage", cloud:"Cloud emulators", auth:"Identity & secrets", observability:"Observability",
+  mail:"Email", workflow:"Workflows", other:"Other", custom:"Custom"};
+
+function tplHtml(c){
+  const host = STATE && STATE.docker && STATE.docker.platform;
+  const emu = c.platform && host && c.platform !== host;
+  return `<button class="tpl ${picked === c.name ? "sel" : ""} ${c.installed ? "installed" : ""}" data-tpl="${c.name}" ${c.installed ? "disabled" : ""}>
+      <span class="t">${esc(c.label)} ${c.installed ? `<span class="chip ok">installed</span>` : ""}${emu ? `<span class="chip warn" title="${esc(c.platform)} image only — runs emulated on this ${esc(host)} machine, slower">emulated</span>` : ""}</span>
+      <span class="b">${esc(c.blurb)}</span>
+      <span class="i">${Object.values(c.ports).map(p => ":" + p).join(" · ")}${c.uiLabel ? " · " + esc(c.uiLabel) : ""}</span>
+    </button>`;
+}
+
+function renderCatalog(){
+  const q = catQuery.trim().toLowerCase();
+  const list = CATALOG.filter(c => !q || (c.name + " " + c.label + " " + c.blurb + " " + c.category).toLowerCase().includes(q));
+  const groups = {};
+  list.forEach(c => (groups[c.category] = groups[c.category] || []).push(c));
+  const order = Object.keys(CATEGORIES).filter(k => groups[k]).concat(Object.keys(groups).filter(k => !CATEGORIES[k]));
+  $("#templates").innerHTML = order.map(k => `
+    <h3 style="grid-column:1/-1;margin:8px 0 0">${esc(CATEGORIES[k] || k)} <span class="n">${groups[k].length}</span></h3>
+    ${groups[k].map(tplHtml).join("")}`).join("") +
+    `<h3 style="grid-column:1/-1;margin:8px 0 0">Custom</h3>
+     <button class="tpl ${custom ? "sel" : ""}" data-tpl="">
+       <span class="t">Custom</span>
+       <span class="b">Any image — set ports, volumes, env and an optional UI yourself.</span>
+       <span class="i">you choose</span></button>` +
+    (list.length || !q ? "" : `<p class="note" style="grid-column:1/-1">Nothing in the catalog matches "${esc(catQuery)}" — define it as a custom tech.</p>`);
+
+  const tpl = CATALOG.find(c => c.name === picked);
+  $("#installPanel").hidden = !tpl;
+  $("#customPanel").hidden = !custom;
+  if(tpl){
+    $("#formTitle").textContent = "Install " + tpl.label;
+    $("#addRows").innerHTML = Object.entries(tpl.ports).map(([k, v]) => `
+      <label>${esc(portLabel(k))}
+        <span class="inp"><input data-form="${k}" value="${esc(form[k] ?? v)}" inputmode="numeric" autocomplete="off"></span>
+      </label>`).join("") + `<label style="grid-column:1/-1;justify-content:end" class="note">
+        Services: ${tpl.services.map(s => `<code>${esc(s)}</code>`).join(" ")} · everything else can be changed in Settings after installing.</label>`;
+  }
+  if(custom){
+    const rows = customMode === "paste" ? PASTE_ROWS : FORM_ROWS;
+    document.querySelectorAll(".mode").forEach(b => b.classList.toggle("active", b.dataset.mode === customMode));
+    $("#customRows").innerHTML = rows.map(([k, label, ph, req, wide, ta]) => `
+      <label ${wide ? 'style="grid-column:1/-1"' : ""}>${esc(label)}${req ? "" : " <span class='hint'>· optional</span>"}
+        <span class="inp">${ta
+          ? `<textarea data-form="${k}" placeholder="${esc(ph)}" spellcheck="false" ${k === "compose" ? 'style="min-height:220px"' : ""}>${esc(form[k] ?? "")}</textarea>`
+          : `<input data-form="${k}" value="${esc(form[k] ?? "")}" placeholder="${esc(ph)}" autocomplete="off" spellcheck="false">`}
+        </span>
+      </label>`).join("");
+    $("#previewOut").hidden = true;
+  }
+}
+
+// [key, label, placeholder, required, wide, textarea]
+const FORM_ROWS = [
+  ["name", "Name", "my-queue", true], ["label", "Display name", "My Queue", false],
+  ["image", "Image (with tag)", "nats:2-alpine", true],
+  ["ports", "Ports — host or host:container, comma-separated", "4222, 8222", true],
+  ["volumes", "Paths to persist inside the container, comma-separated", "/data", false],
+  ["command", "Command override", "--jetstream --store_dir /data", false],
+  ["healthcheck", "Healthcheck shell command", "wget -qO- http://127.0.0.1:8222/healthz", false],
+  ["env", "Environment — KEY=value per line", "POSTGRES_PASSWORD=dev", false, true, true],
+  ["ui_image", "Web UI image (optional, with tag)", "redis/redisinsight:latest", false],
+  ["ui_ports", "UI ports — host or host:container", "5540", false],
+  ["ui_env", "UI environment — KEY=value per line ({NAME} = this tech's hostname)", "RI_REDIS_HOST={NAME}", false, true, true]
+];
+const PASTE_ROWS = [
+  ["name", "Name", "my-app", true], ["label", "Display name", "My App", false],
+  ["compose", "docker-compose.yml — services, ports, volumes and env are converted; build: is not supported", "services:\n  app:\n    image: ghcr.io/org/app:1.2\n    ports: [\"8080:8080\"]\n    environment:\n      LOG_LEVEL: debug", true, true, true]
+];
+let customMode = "form";
+
+const parseEnv = text => Object.fromEntries((text || "").split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#"))
+  .map(l => { const i = l.indexOf("="); return i < 0 ? [l, ""] : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }));
+
+async function installPicked(){
+  const tpl = CATALOG.find(c => c.name === picked);
+  if(!tpl) return;
+  const btn = $("#addBtn"); btn.disabled = true; btn.textContent = "Installing…";
+  $("#addNote").textContent = "pulling images and starting…";
+  stopPoll();
+  try{
+    const settings = {};
+    Object.keys(tpl.ports).forEach(k => { if(form[k] && form[k] !== String(tpl.ports[k])) settings[k] = form[k]; });
+    const r = await api("/api/stacks/install", {name: picked, settings});
+    if(r.ok){
+      toast(`${tpl.label} installed and started`, "ok");
+      form = {}; picked = null;
+      await loadCatalog(); await load(); setView("services");
+    } else {
+      toast("install failed", "err");
+      $("#addOut").hidden = false; $("#addOut").textContent = r.output || "";
+    }
+  }catch(e){ toast(e.message, "err"); }
+  finally{ btn.disabled = false; btn.textContent = "Install"; $("#addNote").textContent = ""; startPoll(); }
+}
+
+const list = s => (s || "").split(",").map(x => x.trim()).filter(Boolean);
+
+function customBody(){
+  if(customMode === "paste") return ["/api/stacks/import", {name: form.name, label: form.label, compose: form.compose || ""}];
+  return ["/api/stacks/add", {name: form.name, label: form.label,
+    core: {image: form.image, ports: list(form.ports), volumes: list(form.volumes),
+           command: form.command || null, healthcheck: form.healthcheck || null, env: form.env || ""},
+    ui: form.ui_image ? {image: form.ui_image, ports: list(form.ui_ports), env: form.ui_env || "",
+                         label: (form.label || form.name || "") + " UI"} : null}];
+}
+
+async function previewCustom(){
+  const [path, body] = customBody();
+  try{
+    const r = await api(path, {...body, dryRun: true});
+    $("#previewOut").hidden = false;
+    $("#previewOut").textContent = r.compose + "\n# settings:\n" + Object.entries(r.env).map(([k, v]) => `# ${k}=${v}`).join("\n");
+  }catch(e){ toast(e.message, "err"); }
+}
+
+async function addCustom(){
+  const btn = $("#customBtn"); btn.disabled = true; btn.textContent = "Adding…";
+  $("#customNote").textContent = "pulling the image and starting it…";
+  stopPoll();
+  try{
+    const [path, body] = customBody();
+    const r = await api(path, body);
+    if(r.ok){
+      toast(`${r.stack} added and started`, "ok");
+      form = {}; custom = null;
+      await loadCatalog(); await load(); setView("services");
+    } else {
+      toast("could not start it — rolled back", "err");
+      $("#addOut").hidden = false; $("#addOut").textContent = r.output || "";
+    }
+  }catch(e){ toast(e.message, "err"); }
+  finally{ btn.disabled = false; btn.textContent = "Add & start"; $("#customNote").textContent = ""; startPoll(); }
+}
+
+async function removeStack(name){
+  const st = STATE.stacks.find(s => s.name === name);
+  const purge = confirm(`Uninstall ${st ? st.label : name}?\n\n` +
+    "OK keeps its data volumes so a re-install picks up where it left off.\n" +
+    "Cancel to keep it installed.");
+  if(!purge) return;
+  const wipe = confirm("Also delete its data volumes?\n\nOK = delete data · Cancel = keep data");
+  pending.add(name); render(); stopPoll();
+  try{
+    const r = await api("/api/stacks/remove", {name, purge: wipe});
+    toast(r.ok ? `${name} uninstalled` : "uninstall failed", r.ok ? "ok" : "err");
+    if(!r.ok) showOut(r.output);
+  }catch(e){ toast(e.message, "err"); }
+  finally{ pending.delete(name); await loadCatalog(); await load(); startPoll(); }
+}
+
+function updateDirty(){
+  const n = Object.keys(dirty).length;
+  $("#savebar").hidden = n === 0;
+  $("#dirtyNote").textContent = n ? `${n} unsaved change${n > 1 ? "s" : ""}` : "";
+  const b = $("#dirtyBadge");
+  b.hidden = n === 0; b.textContent = n; b.classList.toggle("live", n > 0);
+}
+
+function setView(next){
+  view = next;
+  document.querySelectorAll(".nav-item").forEach(el => el.classList.toggle("active", el.dataset.view === next));
+  ["services","catalog","settings","logs","docker"].forEach(v => $("#view-" + v).hidden = v !== next);
+  if(next === "catalog") $("#catSearch").focus();
+}
+
+async function copyText(btn, text){
+  try{ await navigator.clipboard.writeText(text); }
+  catch{
+    const t = document.createElement("textarea");
+    t.value = text; document.body.appendChild(t); t.select();
+    document.execCommand("copy"); t.remove();
+  }
+  btn.innerHTML = I.check; btn.classList.add("done");
+  setTimeout(() => { btn.innerHTML = I.copy; btn.classList.remove("done"); }, 1100);
+}
+
+async function service(action, svc){
+  pending.add(svc); render(); stopPoll();
+  try{
+    const r = await api("/api/service", {action, service: svc});
+    if(!r.ok){ toast(`${svc}: ${action} failed`, "err"); showOut(r.output); }
+  }catch(e){ toast(e.message, "err"); }
+  finally{ pending.delete(svc); await load(); startPoll(); }
+}
+
+async function act(action, stacks){
+  stacks.forEach(s => pending.add(s)); render(); stopPoll();
+  try{
+    const r = await api("/api/action", {action, stacks});
+    toast(r.ok ? `${action} — done` : `${action} failed`, r.ok ? "ok" : "err");
+    if(!r.ok) showOut(r.output);
+  }catch(e){ toast(e.message, "err"); }
+  finally{ pending.clear(); await load(); startPoll(); }
+}
+
+async function save(){
+  const btn = $("#saveBtn"); btn.disabled = true; btn.textContent = "Applying…"; stopPoll();
+  try{
+    const r = await api("/api/save", {values: dirty, apply: true});
+    if(r.consolePort){
+      const url = location.protocol + "//" + location.hostname + ":" + r.consolePort;
+      toast("console is moving to " + url + " …", "ok");
+      setTimeout(() => location.assign(url), 3000);
+      return;
+    }
+    dirty = {};
+    toast(r.ok ? "saved and applied" : "saved, but applying failed", r.ok ? "ok" : "err");
+    if(!r.ok) showOut(r.output);
+  }catch(e){ toast(e.message, "err"); }
+  finally{ btn.disabled = false; btn.textContent = "Save changes"; await load(); startPoll(); }
+}
+
+async function restartDocker(){
+  const ok = confirm("Restart the Docker engine?\n\n" +
+    "• Running services stop, and stay stopped until you toggle them back on\n" +
+    "• The console reconnects on its own in about a minute");
+  if(!ok) return;
+  stopPoll();
+  $("#veil").classList.add("on");
+  try{ await api("/api/docker", {action:"restart"}); }
+  catch(e){ /* the engine drops our connection — expected */ }
+  waitForConsole();
+}
+
+async function waitForConsole(){
+  const started = Date.now();
+  const tick = async () => {
+    try{
+      const r = await fetch("/healthz", {cache:"no-store"});
+      if(r.ok){ $("#veilText").textContent = "Back up — reloading."; return setTimeout(() => location.reload(), 600); }
+    }catch(e){ /* still down */ }
+    const secs = Math.round((Date.now() - started) / 1000);
+    $("#veilText").textContent = `The console will reconnect by itself. (${secs}s)`;
+    if(secs > 180){
+      $("#veilTitle").textContent = "Taking longer than usual";
+      $("#veilText").textContent = "Check Docker, then reload this page.";
+      return;
+    }
+    setTimeout(tick, 2000);
+  };
+  setTimeout(tick, 4000);
+}
+
+function showOut(text){
+  const el = $("#out");
+  el.hidden = !text; el.textContent = text || "";
+  if(text) setView("settings");
+}
+
+document.addEventListener("click", e => {
+  const nav = e.target.closest("[data-view]");
+  if(nav) return setView(nav.dataset.view);
+  const tpl = e.target.closest("[data-tpl]");
+  if(tpl){
+    form = {};
+    if(tpl.dataset.tpl){ picked = tpl.dataset.tpl; custom = null; }
+    else { picked = null; custom = true; }
+    renderCatalog();
+    const first = document.querySelector("#installPanel:not([hidden]) input, #customPanel:not([hidden]) input");
+    if(first) first.focus();
+    return;
+  }
+  if(e.target.closest("#addBtn")) return installPicked();
+  if(e.target.closest("#customBtn")) return addCustom();
+  if(e.target.closest("#previewBtn")) return previewCustom();
+  const mode = e.target.closest("[data-mode]");
+  if(mode){ customMode = mode.dataset.mode; return renderCatalog(); }
+  if(e.target.closest("#addResetBtn") || e.target.closest("#customResetBtn")){ form = {}; picked = null; custom = null; return renderCatalog(); }
+  if(e.target.closest("#logRefresh")) return showLogs();
+  if(e.target.closest("#importBtn")) return $("#importFile").click();
+  const all = e.target.closest("[data-all]");
+  if(all) return act(all.dataset.all, allStacks());
+  const sa = e.target.closest("[data-stack-act]");
+  if(sa) return act(sa.dataset.stackAct, [sa.dataset.stack]);
+  const btn = e.target.closest("[data-act]");
+  if(btn){
+    const a = btn.dataset.act;
+    if(a === "toggle"){
+      const svc = STATE.services.find(s => s.key === btn.dataset.svc);
+      return service(svc.up ? "down" : "up", svc.key);
+    }
+    if(a === "restart") return service("restart", btn.dataset.svc);
+    if(a === "logs") return showLogs(btn.dataset.svc);
+    if(a === "rm") return removeStack(btn.dataset.stack);
+    if(a === "eye"){
+      shown.has(btn.dataset.id) ? shown.delete(btn.dataset.id) : shown.add(btn.dataset.id);
+      return render();
+    }
+    if(a === "copy"){
+      const card = STATE.services.find(s => s.key === btn.dataset.card);
+      return copyText(btn, card.facts[+btn.dataset.i].value);
+    }
+    if(a === "reveal"){
+      const k = btn.dataset.key;
+      revealed.has(k) ? revealed.delete(k) : revealed.add(k);
+      return render();
+    }
+  }
+  if(e.target.closest("#dockerBtn")) return restartDocker();
+  if(e.target.closest("#saveBtn")) return save();
+  if(e.target.closest("#discardBtn")){ dirty = {}; revealed.clear(); return render(); }
+});
+
+document.addEventListener("input", e => {
+  if(e.target.id === "catSearch"){ catQuery = e.target.value; return renderCatalog(); }
+  const fe = e.target.closest("[data-form]");
+  if(fe){ form[fe.dataset.form] = fe.value; return; }
+  const el = e.target.closest("[data-key]");
+  if(!el) return;
+  const key = el.dataset.key;
+  const original = STATE.fields.find(f => f.key === key).value;
+  if(el.value === original) delete dirty[key]; else dirty[key] = el.value;
+  el.classList.toggle("dirty", dirty[key] !== undefined);
+  updateDirty();
+});
+document.addEventListener("change", e => {
+  if(e.target.id === "logSvc") showLogs();
+  if(e.target.id === "exportSecrets") $("#exportBtn").href = "/api/export" + (e.target.checked ? "?secrets=1" : "");
+  if(e.target.id === "importFile" && e.target.files[0]){
+    const f = e.target.files[0];
+    f.text().then(async text => {
+      $("#importNote").textContent = "importing…"; stopPoll();
+      try{
+        const r = await api("/api/import", {data: text});
+        $("#importOut").hidden = false; $("#importOut").textContent = r.output;
+        toast(r.ok ? "imported" : "import failed", r.ok ? "ok" : "err");
+      }catch(err){ toast(err.message, "err"); }
+      finally{ $("#importNote").textContent = ""; e.target.value = ""; await loadCatalog(); await load(); startPoll(); }
+    });
+  }
+});
+
+document.addEventListener("keydown", e => {
+  const mod = e.metaKey || e.ctrlKey;
+  if(mod && e.key.toLowerCase() === "s"){
+    if(Object.keys(dirty).length){ e.preventDefault(); save(); }
+    return;
+  }
+  if(e.key === "Enter" && e.target.closest("#addRows")){ e.preventDefault(); installPicked(); return; }
+  if(e.key === "Enter" && e.target.closest("#customRows") && e.target.tagName !== "TEXTAREA"){ e.preventDefault(); addCustom(); return; }
+  if(e.key === "Escape"){
+    if(view === "settings" && Object.keys(dirty).length){
+      dirty = {}; revealed.clear(); render(); toast("changes discarded");
+    } else if(view === "catalog"){
+      form = {}; picked = null; custom = null; renderCatalog();
+    } else if(shown.size){
+      shown.clear(); render();
+    }
+  }
+});
+
+function startPoll(){ stopPoll(); polling = setInterval(load, 4000); }
+function stopPoll(){ if(polling) clearInterval(polling); polling = null; }
+
+load().then(() => { startPoll(); if(STATE && !STATE.stacks.length) setView("catalog"); });
+loadCatalog();
+document.addEventListener("visibilitychange", () => document.hidden ? stopPoll() : (load(), startPoll()));
+</script>
+</body>
+</html>

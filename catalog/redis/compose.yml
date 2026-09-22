@@ -1,0 +1,40 @@
+# Redis + RedisInsight. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  redis:
+    image: redis:${REDIS_VERSION:-7-alpine}
+    container_name: infrapack-redis
+    restart: *restart
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks: [infra]
+
+  redis-ui:
+    image: redis/redisinsight:${REDIS_UI_VERSION:-latest}
+    container_name: infrapack-redis-ui
+    restart: *restart
+    environment:
+      RI_ACCEPT_TERMS_AND_CONDITIONS: "true"
+      RI_REDIS_HOST: redis
+      RI_REDIS_PORT: "6379"
+      RI_REDIS_ALIAS: InfraPack Redis
+    ports:
+      - "${REDIS_UI_PORT:-5540}:5540"
+    volumes:
+      - redis-ui-data:/data
+    depends_on:
+      - redis
+    networks: [infra]
+
+volumes:
+  redis-data:
+  redis-ui-data:

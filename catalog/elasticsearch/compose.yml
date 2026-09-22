@@ -1,0 +1,42 @@
+# Elasticsearch 8 (single node, security off) + Kibana. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_VERSION:-8.15.3}
+    container_name: infrapack-elasticsearch
+    restart: *restart
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: ${ELASTICSEARCH_JAVA_OPTS:--Xms512m -Xmx512m}
+      cluster.name: infrapack
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://127.0.0.1:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 40s
+    networks: [infra]
+
+  elasticsearch-ui:
+    image: docker.elastic.co/kibana/kibana:${ELASTICSEARCH_UI_VERSION:-8.15.3}
+    container_name: infrapack-elasticsearch-ui
+    restart: *restart
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      SERVER_NAME: infrapack-kibana
+      TELEMETRY_ENABLED: "false"
+    ports:
+      - "${ELASTICSEARCH_UI_PORT:-5601}:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks: [infra]
+
+volumes:
+  elasticsearch-data:

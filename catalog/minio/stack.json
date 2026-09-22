@@ -1,0 +1,28 @@
+{
+  "stack": "minio",
+  "label": "MinIO",
+  "blurb": "S3-compatible object storage · web console built in",
+  "category": "storage",
+  "services": [
+    {
+      "name": "minio",
+      "label": "MinIO",
+      "desc": "S3 API on :{MINIO_PORT} · console on :{MINIO_UI_PORT}",
+      "link": "http://localhost:{MINIO_UI_PORT}",
+      "facts": [
+        {"label": "S3 endpoint", "value": "http://localhost:{MINIO_PORT}", "copy": true},
+        {"label": "In-network", "value": "http://minio:9000", "copy": true},
+        {"label": "Access key", "value": "{MINIO_ROOT_USER}", "copy": true},
+        {"label": "Secret key", "value": "{MINIO_ROOT_PASSWORD}", "copy": true, "secret": true},
+        {"label": "Region", "value": "us-east-1", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "MINIO_PORT", "label": "S3 port", "type": "port", "group": "MinIO"},
+    {"key": "MINIO_UI_PORT", "label": "Console port", "type": "port", "group": "MinIO"},
+    {"key": "MINIO_ROOT_USER", "label": "Access key", "type": "text", "group": "MinIO"},
+    {"key": "MINIO_ROOT_PASSWORD", "label": "Secret key", "type": "secret", "group": "MinIO"},
+    {"key": "MINIO_VERSION", "label": "Image tag", "type": "text", "group": "MinIO"}
+  ]
+}
