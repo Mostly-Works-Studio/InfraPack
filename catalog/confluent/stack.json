@@ -1,0 +1,64 @@
+{
+  "stack": "confluent",
+  "label": "Confluent Platform",
+  "blurb": "Kafka (KRaft) + Schema Registry + Kafka Connect + ksqlDB from Confluent's images · Kafka UI wired to all of them · heavy",
+  "category": "messaging",
+  "services": [
+    {
+      "name": "confluent",
+      "label": "Kafka (Confluent)",
+      "desc": "cp-kafka {CONFLUENT_VERSION} · KRaft single node",
+      "facts": [
+        {"label": "Bootstrap", "value": "localhost:{CONFLUENT_PORT}", "copy": true},
+        {"label": "In-network", "value": "confluent:9092", "copy": true}
+      ]
+    },
+    {
+      "name": "confluent-schema-registry",
+      "label": "Schema Registry",
+      "desc": "Avro / JSON Schema / Protobuf schemas",
+      "facts": [
+        {"label": "URL", "value": "http://localhost:{CONFLUENT_SCHEMA_PORT}", "copy": true},
+        {"label": "In-network", "value": "http://confluent-schema-registry:8081", "copy": true}
+      ]
+    },
+    {
+      "name": "confluent-connect",
+      "label": "Kafka Connect",
+      "desc": "Connect worker · Avro values · drop connector plugins in the plugins volume",
+      "facts": [
+        {"label": "REST", "value": "http://localhost:{CONFLUENT_CONNECT_PORT}", "copy": true},
+        {"label": "In-network", "value": "http://confluent-connect:8083", "copy": true},
+        {"label": "Install a connector", "value": "infrapack confluent hub confluentinc/kafka-connect-jdbc:latest", "copy": true}
+      ]
+    },
+    {
+      "name": "confluent-ksqldb",
+      "label": "ksqlDB",
+      "desc": "Streaming SQL on Kafka",
+      "facts": [
+        {"label": "REST", "value": "http://localhost:{CONFLUENT_KSQLDB_PORT}", "copy": true},
+        {"label": "In-network", "value": "http://confluent-ksqldb:8088", "copy": true},
+        {"label": "CLI", "value": "infrapack confluent ksql", "copy": true}
+      ]
+    },
+    {
+      "name": "confluent-ui",
+      "label": "Kafka UI",
+      "ui": true,
+      "desc": "Topics, schemas, connectors and ksqlDB in one place",
+      "link": "http://localhost:{CONFLUENT_UI_PORT}",
+      "facts": [{"label": "Sign-in", "value": "not required"}]
+    }
+  ],
+  "settings": [
+    {"key": "CONFLUENT_PORT", "label": "Bootstrap port", "type": "port", "group": "Kafka (Confluent)"},
+    {"key": "CONFLUENT_HEAP_OPTS", "label": "Broker JVM heap", "type": "text", "group": "Kafka (Confluent)"},
+    {"key": "CONFLUENT_VERSION", "label": "Platform version (all images)", "type": "text", "group": "Kafka (Confluent)"},
+    {"key": "CONFLUENT_SCHEMA_PORT", "label": "Port", "type": "port", "group": "Schema Registry"},
+    {"key": "CONFLUENT_CONNECT_PORT", "label": "Port", "type": "port", "group": "Kafka Connect"},
+    {"key": "CONFLUENT_KSQLDB_PORT", "label": "Port", "type": "port", "group": "ksqlDB"},
+    {"key": "CONFLUENT_UI_PORT", "label": "Port", "type": "port", "group": "Kafka UI"},
+    {"key": "CONFLUENT_UI_VERSION", "label": "Image tag", "type": "text", "group": "Kafka UI"}
+  ]
+}

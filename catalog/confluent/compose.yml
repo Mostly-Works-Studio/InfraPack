@@ -1,0 +1,149 @@
+# Confluent Platform: Kafka (KRaft) + Schema Registry + Kafka Connect + ksqlDB, with
+# Kafka UI wired to all four. Managed by InfraPack. Heavy: four JVMs.
+# The cp-* images ship no curl, hence the bash /dev/tcp healthchecks.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  confluent:
+    image: confluentinc/cp-kafka:${CONFLUENT_VERSION:-8.3.2}
+    container_name: infrapack-confluent
+    restart: *restart
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@confluent:29093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://confluent:9092,PLAINTEXT_HOST://localhost:${CONFLUENT_PORT:-9094}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      CLUSTER_ID: ${CONFLUENT_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_HEAP_OPTS: ${CONFLUENT_HEAP_OPTS:--Xms256m -Xmx512m}
+    ports:
+      - "${CONFLUENT_PORT:-9094}:9094"
+    volumes:
+      - confluent-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 18
+      start_period: 30s
+    networks: [infra]
+
+  confluent-schema-registry:
+    image: confluentinc/cp-schema-registry:${CONFLUENT_VERSION:-8.3.2}
+    container_name: infrapack-confluent-schema-registry
+    restart: *restart
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: confluent-schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: confluent:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_HEAP_OPTS: -Xms128m -Xmx256m
+    ports:
+      - "${CONFLUENT_SCHEMA_PORT:-8181}:8081"
+    depends_on:
+      confluent:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8081 && printf 'GET /subjects HTTP/1.0\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q 200"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    networks: [infra]
+
+  confluent-connect:
+    image: confluentinc/cp-kafka-connect:${CONFLUENT_VERSION:-8.3.2}
+    container_name: infrapack-confluent-connect
+    restart: *restart
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: confluent:9092
+      CONNECT_REST_PORT: 8083
+      CONNECT_REST_ADVERTISED_HOST_NAME: confluent-connect
+      CONNECT_GROUP_ID: infrapack-connect
+      CONNECT_CONFIG_STORAGE_TOPIC: _connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: _connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: _connect-status
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://confluent-schema-registry:8081
+      CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components,/data/plugins
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+    ports:
+      - "${CONFLUENT_CONNECT_PORT:-8183}:8083"
+    volumes:
+      - confluent-connect-plugins:/data/plugins
+    depends_on:
+      confluent:
+        condition: service_healthy
+      confluent-schema-registry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8083 && printf 'GET /connectors HTTP/1.0\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q 200"]
+      interval: 15s
+      timeout: 10s
+      retries: 24
+      start_period: 60s
+    networks: [infra]
+
+  confluent-ksqldb:
+    image: confluentinc/cp-ksqldb-server:${CONFLUENT_VERSION:-8.3.2}
+    container_name: infrapack-confluent-ksqldb
+    restart: *restart
+    environment:
+      KSQL_BOOTSTRAP_SERVERS: confluent:9092
+      KSQL_LISTENERS: http://0.0.0.0:8088
+      KSQL_KSQL_SERVICE_ID: infrapack_
+      KSQL_KSQL_SCHEMA_REGISTRY_URL: http://confluent-schema-registry:8081
+      KSQL_KSQL_CONNECT_URL: http://confluent-connect:8083
+      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_REPLICATION_FACTOR: 1
+      KSQL_KSQL_STREAMS_REPLICATION_FACTOR: 1
+      KSQL_HEAP_OPTS: -Xms256m -Xmx512m
+    ports:
+      - "${CONFLUENT_KSQLDB_PORT:-8188}:8088"
+    depends_on:
+      confluent:
+        condition: service_healthy
+      confluent-schema-registry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8088 && printf 'GET /info HTTP/1.0\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q 200"]
+      interval: 15s
+      timeout: 10s
+      retries: 24
+      start_period: 45s
+    networks: [infra]
+
+  confluent-ui:
+    image: kafbat/kafka-ui:${CONFLUENT_UI_VERSION:-latest}
+    container_name: infrapack-confluent-ui
+    restart: *restart
+    environment:
+      KAFKA_CLUSTERS_0_NAME: confluent
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: confluent:9092
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://confluent-schema-registry:8081
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: connect
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://confluent-connect:8083
+      KAFKA_CLUSTERS_0_KSQLDBSERVER: http://confluent-ksqldb:8088
+      DYNAMIC_CONFIG_ENABLED: "true"
+      SERVER_PORT: 8080
+    ports:
+      - "${CONFLUENT_UI_PORT:-8184}:8080"
+    depends_on:
+      confluent:
+        condition: service_healthy
+    networks: [infra]
+
+volumes:
+  confluent-data:
+  confluent-connect-plugins:

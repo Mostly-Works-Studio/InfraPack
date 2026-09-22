@@ -162,6 +162,7 @@ Flags:  --no-ui   start/stop core services only, without their web UIs
 | Caches | `keydb` | KeyDB | main 6381 |
 | Caches | `memcached` | Memcached | main 11211 |
 | Caches | `redis` | Redis, RedisInsight | main 6379 · ui 5540 |
+| Messaging & streaming | `confluent` | Kafka (Confluent), Schema Registry, Kafka Connect, ksqlDB, Kafka UI | main 9094 · schema 8181 · connect 8183 · ksqldb 8188 · ui 8184 |
 | Messaging & streaming | `flink` | Flink JobManager, Flink TaskManager | ui 8095 · main 6123 |
 | Messaging & streaming | `kafka` | Kafka, Kafka UI | main 9092 · ui 8081 |
 | Messaging & streaming | `mosquitto` | Mosquitto | main 1883 · ws 9003 |
