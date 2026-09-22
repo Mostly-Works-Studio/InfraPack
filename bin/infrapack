@@ -958,7 +958,7 @@ cmd_update() {
         info "git checkout — pulling"; git -C "$INFRAPACK_APP" pull --ff-only
       elif [[ -f "$INFRAPACK_APP/.installed-by-script" ]]; then
         info "re-running the installer"
-        curl -fsSL https://raw.githubusercontent.com/Mostly-Works-Studio/infrapack/main/install.sh | bash
+        curl -fsSL https://raw.githubusercontent.com/Mostly-Works-Studio/infrapack/master/install.sh | bash
       else
         echo "don't know how this copy was installed — re-install from https://github.com/Mostly-Works-Studio/infrapack"
       fi ;;

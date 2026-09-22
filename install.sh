@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # InfraPack installer — macOS and Linux.
 #
-#   curl -fsSL https://raw.githubusercontent.com/Mostly-Works-Studio/infrapack/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Mostly-Works-Studio/infrapack/master/install.sh | bash
 #
 # What it does:
 #   1. checks for bash and Docker (and tells you how to get Docker if missing)

@@ -29,7 +29,7 @@ brew install infrapack            # later: brew upgrade infrapack
 **One line** (macOS, Linux):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Mostly-Works-Studio/infrapack/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Mostly-Works-Studio/infrapack/master/install.sh | bash
 ```
 
 Either way, then:
@@ -266,4 +266,4 @@ The tag triggers `.github/workflows/release.yml`: a multi-arch console image
 is pushed to GHCR, a GitHub release is created, and the Homebrew formula in
 `Mostly-Works-Studio/homebrew-tap` is updated (needs a `TAP_GITHUB_TOKEN`
 repository secret with write access to the tap). CI runs the smoke test on
-every PR and boots the whole catalog on `main` and weekly.
+every PR and boots the whole catalog on `master` and weekly.

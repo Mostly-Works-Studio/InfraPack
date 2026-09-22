@@ -56,7 +56,7 @@ jobs:
           body: |
             Install or update:
             ```
-            curl -fsSL https://raw.githubusercontent.com/Mostly-Works-Studio/infrapack/main/install.sh | bash
+            curl -fsSL https://raw.githubusercontent.com/Mostly-Works-Studio/infrapack/master/install.sh | bash
             brew install mostly-works-studio/tap/infrapack     # or: brew upgrade infrapack
             ```
 
