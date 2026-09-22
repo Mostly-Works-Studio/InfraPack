@@ -1,0 +1,14 @@
+# Linux only: run the console as the invoking user so everything it writes
+# into the workspace (installs, custom techs, .env edits) is owned by them,
+# not root. Docker Desktop on macOS maps ownership itself, so it is not needed
+# there. Merged in by the CLI after compose.yml.
+services:
+  console:
+    user: "${INFRAPACK_UID}:${INFRAPACK_GID}"
+    group_add:
+      - "${INFRAPACK_DOCKER_GID}"
+    environment:
+      HOME: /tmp
+      INFRAPACK_UID: ${INFRAPACK_UID}
+      INFRAPACK_GID: ${INFRAPACK_GID}
+      INFRAPACK_DOCKER_GID: ${INFRAPACK_DOCKER_GID}

@@ -195,7 +195,9 @@ def infra(*args, detached=False, extra_env=None):
     if detached:
         image = os.environ.get("INFRAPACK_IMAGE", "ghcr.io/mostly-works-studio/infrapack") + ":" + VERSION
         sock = os.environ.get("DOCKER_SOCK", "/var/run/docker.sock")
-        cmd = ["docker", "run", "-d", "--rm", "--name", f"{PROJECT}-sidecar-{int(time.time())}",
+        run_as = os.environ.get("INFRAPACK_RUN_AS")
+        ident = ["--user", run_as, "--group-add", os.environ.get("INFRAPACK_DOCKER_GID", "0"), "-e", "HOME=/tmp"] if run_as else []
+        cmd = ["docker", "run", "-d", "--rm", "--name", f"{PROJECT}-sidecar-{int(time.time())}", *ident,
                "-v", f"{sock}:/var/run/docker.sock", "-v", f"{HOME}:{HOME}",
                "-e", f"INFRAPACK_HOME={HOME}", "-e", f"INFRAPACK_HOST_OS={HOST_OS}",
                "-e", f"DOCKER_SOCK={sock}", "-e", "NO_COLOR=1", image, "bash", "/app/bin/infrapack", *args]

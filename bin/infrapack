@@ -178,6 +178,15 @@ EOF
   fi
   export DOCKER_SOCK="${DOCKER_SOCK:-/var/run/docker.sock}"
   export INFRAPACK_HOST_OS="${INFRAPACK_HOST_OS:-$OS}"
+  # On Linux the console runs as the invoking user (see compose.linux.yml), so
+  # files it writes into the workspace are not root-owned.
+  if [[ "$INFRAPACK_HOST_OS" == Linux ]]; then
+    if [[ "$IN_CONTAINER" != 1 ]]; then
+      export INFRAPACK_UID="${INFRAPACK_UID:-$(id -u)}" INFRAPACK_GID="${INFRAPACK_GID:-$(id -g)}"
+      export INFRAPACK_DOCKER_GID="${INFRAPACK_DOCKER_GID:-$(stat -c %g "$DOCKER_SOCK" 2>/dev/null || echo 0)}"
+    fi
+    export INFRAPACK_RUN_AS="${INFRAPACK_UID:-0}:${INFRAPACK_GID:-0}"
+  fi
 }
 
 # ---------------------------------------------------------------- stacks --
@@ -251,6 +260,7 @@ run_hook() {
 compose_args() {
   local stack
   printf -- '-f\n%s\n' "$BASE_COMPOSE"
+  [[ "$INFRAPACK_HOST_OS" == Linux ]] && printf -- '-f\n%s\n' "$INFRAPACK_APP/compose.linux.yml"
   for stack in $(installed_stacks); do
     printf -- '-f\n%s\n' "$STACKS_DIR/$stack/compose.yml"
   done
@@ -309,6 +319,10 @@ registry() {
       "$(console_image)" python3 /app/console/registry.py "$@"
   fi
 }
+run_as_flags() {                   # --user/--group-add for one-off containers on Linux
+  [[ -n "${INFRAPACK_RUN_AS:-}" ]] && printf -- '--user %s --group-add %s -e HOME=/tmp' "$INFRAPACK_RUN_AS" "${INFRAPACK_DOCKER_GID:-0}"
+  return 0
+}
 registry_stdin() {
   local script="$1"; shift
   if [[ "$IN_CONTAINER" == 1 ]]; then
@@ -317,7 +331,7 @@ registry_stdin() {
     docker exec -i -e "INFRAPACK_HOME=$INFRAPACK_HOME" "$PROJECT-console" python3 "/app/console/$script.py" "$@"
   else
     ensure_console_image
-    docker run --rm -i -v "$DOCKER_SOCK:/var/run/docker.sock" -v "$INFRAPACK_HOME:$INFRAPACK_HOME" \
+    docker run --rm -i $(run_as_flags) -v "$DOCKER_SOCK:/var/run/docker.sock" -v "$INFRAPACK_HOME:$INFRAPACK_HOME" \
       -e "INFRAPACK_HOME=$INFRAPACK_HOME" "$(console_image)" python3 "/app/console/$script.py" "$@"
   fi
 }
@@ -821,7 +835,11 @@ cmd_uninstall() {
   dc rm -sf "${svcs[@]}" >/dev/null 2>&1 || true
   run_hook "$name" pre-uninstall || true
   env_remove_stack "$name" "$STACKS_DIR/$name/defaults.env"
-  rm -rf "$STACKS_DIR/$name"
+  if ! rm -rf "$STACKS_DIR/$name" 2>/dev/null; then
+    # files written by an older root-running console: delete them the same way
+    docker run --rm -v "$STACKS_DIR:/stacks" alpine:3 rm -rf "/stacks/$name" >/dev/null 2>&1 \
+      || die "could not remove $STACKS_DIR/$name — remove it by hand (sudo rm -rf)"
+  fi
   claims_clear_tech "$name"
   if [[ $purge -eq 1 ]]; then
     local v

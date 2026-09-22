@@ -5,12 +5,13 @@ FROM python:3.13-alpine
 RUN apk add --no-cache docker-cli docker-cli-compose bash curl
 
 WORKDIR /app
-COPY VERSION compose.yml ./
+COPY VERSION compose.yml compose.linux.yml ./
 COPY bin ./bin
 COPY catalog ./catalog
 COPY console ./console
 
-ENV INFRAPACK_APP=/app \
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    INFRAPACK_APP=/app \
     INFRAPACK_IN_CONTAINER=1 \
     CONSOLE_INTERNAL_PORT=8000 \
     PATH="/app/bin:${PATH}"
