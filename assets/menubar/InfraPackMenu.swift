@@ -15,6 +15,8 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var state: [String: Any] = [:]
     private var reachable = false
     private var busy = Set<String>()
+    private var menuOpen = false
+    private var structure = ""            // what the menu was built for; rebuild only when it changes
 
     // ---------------------------------------------------------- console --
     private var home: String {
@@ -41,12 +43,17 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         statusItem.button?.toolTip = "InfraPack"
         menu.delegate = self
+        menu.autoenablesItems = false
         statusItem.menu = menu
         refresh()
-        Timer.scheduledTimer(withTimeInterval: 6, repeats: true) { [weak self] _ in self?.refresh() }
+        // .common mode so the timer keeps firing while the menu is open (menu tracking runs its own loop)
+        let timer = Timer(timeInterval: 3, repeats: true) { [weak self] _ in self?.refresh() }
+        RunLoop.main.add(timer, forMode: .common)
     }
 
-    func menuNeedsUpdate(_ menu: NSMenu) { rebuild() }
+    func menuNeedsUpdate(_ menu: NSMenu) { rebuildIfNeeded() }
+    func menuWillOpen(_ menu: NSMenu) { menuOpen = true; refresh() }
+    func menuDidClose(_ menu: NSMenu) { menuOpen = false }
 
     // ------------------------------------------------------------- data --
     private func refresh() {
@@ -59,6 +66,7 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self.reachable = parsed != nil
                 if let p = parsed { self.state = p }
                 self.updateBadge()
+                self.rebuildIfNeeded()          // in place while the menu is open, so it updates live
             }
         }.resume()
     }
@@ -85,6 +93,53 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     // ------------------------------------------------------------- menu --
+    private var currentStructure: String {
+        var parts = [reachable ? "up" : "down"]
+        for stack in stacks {
+            let name = stack["name"] as? String ?? ""
+            let links = services(of: name).compactMap { ($0["link"] as? String) != nil ? ($0["name"] as? String) : nil }
+            parts.append(name + ":" + links.joined(separator: ","))
+        }
+        return parts.joined(separator: "|")
+    }
+
+    private func rebuildIfNeeded() {
+        let s = currentStructure
+        if s != structure || menu.items.isEmpty {
+            // a full rebuild while the menu is open makes it flicker; keep the old one until it closes
+            if menuOpen && !menu.items.isEmpty { applyState(); return }
+            structure = s
+            rebuild()
+        } else {
+            applyState()
+        }
+    }
+
+    private func stackTitle(_ label: String, name: String, svcs: [[String: Any]]) -> (String, NSControl.StateValue, Bool) {
+        let up = svcs.filter { ($0["up"] as? Bool) == true }.count
+        let starting = svcs.contains { ($0["health"] as? String) == "starting" }
+        let state: NSControl.StateValue = up == 0 ? .off : (up == svcs.count ? .on : .mixed)
+        if busy.contains(name) { return ("\(label) — working…", state, false) }
+        if starting { return ("\(label) — starting", state, true) }
+        return (label, state, true)
+    }
+
+    // update titles / checkmarks / enabled flags of the existing items (safe while the menu is open)
+    private func applyState() {
+        for it in menu.items {
+            if let name = it.representedObject as? String, let stack = stacks.first(where: { ($0["name"] as? String) == name }) {
+                let (title, state, enabled) = stackTitle(stack["label"] as? String ?? name, name: name, svcs: services(of: name))
+                if it.title != title { it.title = title }
+                if it.state != state { it.state = state }
+                if it.isEnabled != enabled { it.isEnabled = enabled }
+            } else if let ref = it.representedObject as? [String: String], let svcName = ref["service"] {
+                let up = services.first(where: { ($0["name"] as? String) == svcName }).flatMap { $0["up"] as? Bool } ?? false
+                if it.isEnabled != up { it.isEnabled = up }
+            }
+        }
+        updateBadge()
+    }
+
     private func rebuild() {
         menu.removeAllItems()
         let title = NSMenuItem(title: reachable ? "InfraPack" : "InfraPack — console not running", action: nil, keyEquivalent: "")
@@ -108,21 +163,21 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let name = stack["name"] as? String else { continue }
             let label = stack["label"] as? String ?? name
             let svcs = services(of: name)
-            let up = svcs.filter { ($0["up"] as? Bool) == true }.count
-            let starting = svcs.contains { ($0["health"] as? String) == "starting" }
-            let toggle = NSMenuItem(title: label, action: #selector(toggleStack(_:)), keyEquivalent: "")
+            let (title, state, enabled) = stackTitle(label, name: name, svcs: svcs)
+            let toggle = NSMenuItem(title: title, action: #selector(toggleStack(_:)), keyEquivalent: "")
             toggle.target = self
             toggle.representedObject = name
-            toggle.state = up == 0 ? .off : (up == svcs.count ? .on : .mixed)
-            if busy.contains(name) { toggle.title = "\(label) — working…"; toggle.isEnabled = false }
-            else if starting { toggle.title = "\(label) — starting" }
+            toggle.state = state
+            toggle.isEnabled = enabled
             menu.addItem(toggle)
-            for svc in svcs where (svc["up"] as? Bool) == true {
-                if let link = svc["link"] as? String, let url = URL(string: link) {
-                    let open = NSMenuItem(title: "Open \(svc["name"] as? String ?? "UI")", action: #selector(openLink(_:)), keyEquivalent: "")
+            // "Open …" for every service with a UI; enabled only while it runs (so it can update in place)
+            for svc in svcs {
+                if let link = svc["link"] as? String, let svcName = svc["name"] as? String {
+                    let open = NSMenuItem(title: "Open \(svcName)", action: #selector(openLink(_:)), keyEquivalent: "")
                     open.target = self
-                    open.representedObject = url
+                    open.representedObject = ["service": svcName, "url": link]
                     open.indentationLevel = 1
+                    open.isEnabled = (svc["up"] as? Bool) == true
                     menu.addItem(open)
                 }
             }
@@ -154,21 +209,23 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         NSWorkspace.shared.open(consoleURL)
     }
-    @objc private func openLink(_ sender: NSMenuItem) { if let url = sender.representedObject as? URL { NSWorkspace.shared.open(url) } }
+    @objc private func openLink(_ sender: NSMenuItem) {
+        if let ref = sender.representedObject as? [String: String], let s = ref["url"], let url = URL(string: s) { NSWorkspace.shared.open(url) }
+    }
     @objc private func quit() { NSApp.terminate(nil) }
 
     @objc private func toggleStack(_ sender: NSMenuItem) {
         guard let name = sender.representedObject as? String else { return }
         let up = services(of: name).contains { ($0["up"] as? Bool) == true }
-        busy.insert(name)
-        post("api/action", ["action": up ? "down" : "up", "stacks": [name]]) { self.busy.remove(name) }
+        busy.insert(name); applyState()
+        post("api/action", ["action": up ? "down" : "up", "stacks": [name]]) { self.busy.remove(name); self.applyState() }
     }
     @objc private func startAll() { act("up") }
     @objc private func stopAll() { act("down") }
     private func act(_ action: String) {
         let names = stacks.compactMap { $0["name"] as? String }
-        names.forEach { busy.insert($0) }
-        post("api/action", ["action": action, "stacks": names]) { names.forEach { self.busy.remove($0) } }
+        names.forEach { busy.insert($0) }; applyState()
+        post("api/action", ["action": action, "stacks": names]) { names.forEach { self.busy.remove($0) }; self.applyState() }
     }
 
     @objc private func startInfraPack() {
