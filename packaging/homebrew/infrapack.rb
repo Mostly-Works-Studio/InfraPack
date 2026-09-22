@@ -2,7 +2,8 @@
 # github.com/Mostly-Works-Studio/homebrew-tap as Formula/infrapack.rb;
 # scripts/release.sh fills in the version and sha256 and copies it there.
 #
-#   brew install mostly-works-studio/tap/infrapack
+#   brew tap mostly-works-studio/tap && brew trust mostly-works-studio/tap
+#   brew install infrapack
 #
 # Written to homebrew-core standards (source install, license, test block, no
 # explicit version) so the same file can be submitted to Homebrew/homebrew-core

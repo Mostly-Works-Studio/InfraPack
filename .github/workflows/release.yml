@@ -57,7 +57,7 @@ jobs:
             Install or update:
             ```
             curl -fsSL https://raw.githubusercontent.com/Mostly-Works-Studio/infrapack/master/install.sh | bash
-            brew install mostly-works-studio/tap/infrapack     # or: brew upgrade infrapack
+            brew tap mostly-works-studio/tap && brew trust mostly-works-studio/tap && brew install infrapack
             ```
 
   homebrew:

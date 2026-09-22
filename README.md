@@ -23,7 +23,8 @@ infrapack down                 # stop everything, keep data
 
 ```bash
 brew tap mostly-works-studio/tap
-brew install infrapack            # later: brew upgrade infrapack
+brew trust mostly-works-studio/tap   # newer Homebrew asks once for third-party taps
+brew install infrapack               # later: brew upgrade infrapack
 ```
 
 **One line** (macOS, Linux):
