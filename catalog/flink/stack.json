@@ -1,0 +1,32 @@
+{
+  "stack": "flink",
+  "label": "Apache Flink",
+  "blurb": "Stream & batch processing · JobManager + TaskManager · web UI · SQL client",
+  "category": "messaging",
+  "services": [
+    {
+      "name": "flink",
+      "label": "Flink JobManager",
+      "desc": "Flink {FLINK_VERSION} · submit jobs via the UI, REST or the CLI",
+      "link": "http://localhost:{FLINK_UI_PORT}",
+      "facts": [
+        {"label": "Web UI / REST", "value": "http://localhost:{FLINK_UI_PORT}", "copy": true},
+        {"label": "RPC", "value": "localhost:{FLINK_PORT}", "copy": true},
+        {"label": "In-network", "value": "flink:8081 (REST) · flink:6123 (RPC)", "copy": true},
+        {"label": "Submit a jar", "value": "infrapack flink run /path/in/container.jar", "copy": true}
+      ]
+    },
+    {
+      "name": "flink-taskmanager",
+      "label": "Flink TaskManager",
+      "desc": "{FLINK_TASK_SLOTS} task slots",
+      "facts": [{"label": "Scale", "value": "add more with docker compose scale, or raise the slots setting"}]
+    }
+  ],
+  "settings": [
+    {"key": "FLINK_UI_PORT", "label": "Web UI port", "type": "port", "group": "Flink"},
+    {"key": "FLINK_PORT", "label": "RPC port", "type": "port", "group": "Flink"},
+    {"key": "FLINK_TASK_SLOTS", "label": "Task slots", "type": "int", "group": "Flink"},
+    {"key": "FLINK_VERSION", "label": "Image tag", "type": "text", "group": "Flink"}
+  ]
+}

@@ -160,6 +160,7 @@ Flags:  --no-ui   start/stop core services only, without their web UIs
 | Caches | `keydb` | KeyDB | main 6381 |
 | Caches | `memcached` | Memcached | main 11211 |
 | Caches | `redis` | Redis, RedisInsight | main 6379 · ui 5540 |
+| Messaging & streaming | `flink` | Flink JobManager, Flink TaskManager | ui 8095 · main 6123 |
 | Messaging & streaming | `kafka` | Kafka, Kafka UI | main 9092 · ui 8081 |
 | Messaging & streaming | `mosquitto` | Mosquitto | main 1883 · ws 9003 |
 | Messaging & streaming | `nats` | NATS | main 4222 · monitor 8222 |
@@ -187,10 +188,13 @@ Flags:  --no-ui   start/stop core services only, without their web UIs
 | Observability | `otel` | OTel Collector | grpc 4327 · http 4328 |
 | Email | `mailpit` | Mailpit | main 1025 · ui 8025 |
 | Workflows | `airflow` | Airflow | main 8093 |
+| Workflows | `dkron` | Dkron | main 8096 |
 | Workflows | `inngest` | Inngest Dev Server | main 8288 |
+| Workflows | `kestra` | Kestra, Kestra DB | main 8097 |
 | Workflows | `maestro` | Maestro, Maestro DB (built from source on first start) | main 8094 |
 | Workflows | `n8n` | n8n | main 5678 |
 | Workflows | `prefect` | Prefect | main 4200 |
+| Workflows | `rundeck` | Rundeck | main 4440 |
 | Workflows | `temporal` | Temporal, Temporal DB, Temporal UI | main 7233 · ui 8233 |
 
 Nothing is installed by default. A fresh workspace is just the console.

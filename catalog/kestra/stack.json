@@ -1,0 +1,25 @@
+{
+  "stack": "kestra",
+  "label": "Kestra",
+  "blurb": "Declarative (YAML) workflow orchestration · scheduler, UI, plugins · own PostgreSQL",
+  "category": "workflow",
+  "services": [
+    {
+      "name": "kestra",
+      "label": "Kestra",
+      "desc": "Kestra {KESTRA_VERSION} standalone · Docker socket mounted for script tasks",
+      "link": "http://localhost:{KESTRA_PORT}",
+      "facts": [
+        {"label": "UI", "value": "http://localhost:{KESTRA_PORT}", "copy": true},
+        {"label": "API", "value": "http://localhost:{KESTRA_PORT}/api/v1", "copy": true},
+        {"label": "First run", "value": "no login (open source edition)"},
+        {"label": "In-network", "value": "http://kestra:8080", "copy": true}
+      ]
+    },
+    {"name": "kestra-db", "label": "Kestra DB", "desc": "PostgreSQL used by Kestra only", "facts": [{"label": "Access", "value": "internal (kestra / kestra)"}]}
+  ],
+  "settings": [
+    {"key": "KESTRA_PORT", "label": "Port", "type": "port", "group": "Kestra"},
+    {"key": "KESTRA_VERSION", "label": "Image tag", "type": "text", "group": "Kestra"}
+  ]
+}

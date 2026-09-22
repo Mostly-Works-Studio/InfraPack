@@ -1,0 +1,23 @@
+{
+  "stack": "dkron",
+  "label": "Dkron",
+  "blurb": "Distributed cron · schedule shell, HTTP and Docker jobs · web UI + REST API",
+  "category": "workflow",
+  "services": [
+    {
+      "name": "dkron",
+      "label": "Dkron",
+      "desc": "Dkron {DKRON_VERSION} · single server",
+      "link": "http://localhost:{DKRON_PORT}/ui/",
+      "facts": [
+        {"label": "UI", "value": "http://localhost:{DKRON_PORT}/ui/", "copy": true},
+        {"label": "API", "value": "http://localhost:{DKRON_PORT}/v1/jobs", "copy": true},
+        {"label": "In-network", "value": "http://dkron:8080", "copy": true}
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "DKRON_PORT", "label": "Port", "type": "port", "group": "Dkron"},
+    {"key": "DKRON_VERSION", "label": "Image tag", "type": "text", "group": "Dkron"}
+  ]
+}

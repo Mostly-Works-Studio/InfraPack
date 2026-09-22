@@ -1,0 +1,66 @@
+# Kestra — declarative workflow orchestration, standalone with its own PostgreSQL. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  kestra:
+    image: kestra/kestra:${KESTRA_VERSION:-latest}
+    container_name: infrapack-kestra
+    restart: *restart
+    user: "root"
+    command: server standalone
+    environment:
+      KESTRA_CONFIGURATION: |
+        datasources:
+          postgres:
+            url: jdbc:postgresql://kestra-db:5432/kestra
+            driverClassName: org.postgresql.Driver
+            username: kestra
+            password: kestra
+        kestra:
+          repository:
+            type: postgres
+          queue:
+            type: postgres
+          storage:
+            type: local
+            local:
+              basePath: /app/storage
+          url: http://localhost:${KESTRA_PORT:-8097}/
+          anonymous-usage-report:
+            enabled: false
+    ports:
+      - "${KESTRA_PORT:-8097}:8080"
+    volumes:
+      - kestra-data:/app/storage
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
+    depends_on:
+      kestra-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8081/health >/dev/null || curl -fs http://localhost:8080/api/v1/configs >/dev/null"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 45s
+    networks: [infra]
+
+  kestra-db:
+    image: postgres:16-alpine
+    container_name: infrapack-kestra-db
+    restart: *restart
+    environment:
+      POSTGRES_USER: kestra
+      POSTGRES_PASSWORD: kestra
+      POSTGRES_DB: kestra
+    volumes:
+      - kestra-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kestra"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [infra]
+
+volumes:
+  kestra-data:
+  kestra-db-data:

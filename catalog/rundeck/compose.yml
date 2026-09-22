@@ -1,0 +1,25 @@
+# Rundeck — job scheduler & runbook automation (built-in H2 database). Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  rundeck:
+    image: rundeck/rundeck:${RUNDECK_VERSION:-6.2.1}
+    container_name: infrapack-rundeck
+    restart: *restart
+    environment:
+      RUNDECK_GRID_URL: http://localhost:${RUNDECK_PORT:-4440}
+      RUNDECK_SERVER_FORWARDED: "true"
+    ports:
+      - "${RUNDECK_PORT:-4440}:4440"
+    volumes:
+      - rundeck-data:/home/rundeck/server/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs -o /dev/null http://localhost:4440/user/login"]
+      interval: 15s
+      timeout: 10s
+      retries: 24
+      start_period: 60s
+    networks: [infra]
+
+volumes:
+  rundeck-data:

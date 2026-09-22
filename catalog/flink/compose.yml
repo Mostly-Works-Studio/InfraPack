@@ -1,0 +1,44 @@
+# Apache Flink — JobManager + one TaskManager, with the Flink web UI. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+x-flink-props: &props |
+  jobmanager.rpc.address: flink
+  taskmanager.numberOfTaskSlots: ${FLINK_TASK_SLOTS:-2}
+  jobmanager.memory.process.size: 1024m
+  taskmanager.memory.process.size: 1280m
+  rest.address: 0.0.0.0
+
+services:
+  flink:
+    image: apache/flink:${FLINK_VERSION:-latest}
+    container_name: infrapack-flink
+    restart: *restart
+    command: jobmanager
+    environment:
+      FLINK_PROPERTIES: *props
+    ports:
+      - "${FLINK_UI_PORT:-8095}:8081"
+      - "${FLINK_PORT:-6123}:6123"
+    volumes:
+      - flink-data:/tmp/flink
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8081/overview >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks: [infra]
+
+  flink-taskmanager:
+    image: apache/flink:${FLINK_VERSION:-latest}
+    container_name: infrapack-flink-taskmanager
+    restart: *restart
+    command: taskmanager
+    environment:
+      FLINK_PROPERTIES: *props
+    depends_on:
+      flink:
+        condition: service_healthy
+    networks: [infra]
+
+volumes:
+  flink-data:

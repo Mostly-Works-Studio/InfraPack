@@ -1,0 +1,23 @@
+# Dkron — distributed cron with a web UI and REST API. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  dkron:
+    image: dkron/dkron:${DKRON_VERSION:-latest}
+    container_name: infrapack-dkron
+    restart: *restart
+    command: ["agent", "--server", "--bootstrap-expect=1", "--data-dir=/dkron.data", "--node-name=dkron"]
+    ports:
+      - "${DKRON_PORT:-8096}:8080"
+    volumes:
+      - dkron-data:/dkron.data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/v1/ >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks: [infra]
+
+volumes:
+  dkron-data:
