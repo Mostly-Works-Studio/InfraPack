@@ -54,6 +54,7 @@ def _load_dir(path):
     data.setdefault("blurb", "")
     data.setdefault("category", "other")
     data.setdefault("settings", [])
+    data["memory_mb"] = int(data.get("memory_mb") or 512)
     data["custom"] = bool(data.get("custom", False))
     data["defaults"] = read_env_file(path / "defaults.env")
     data["compose_services"] = compose_service_names(compose)

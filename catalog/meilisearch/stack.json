@@ -3,6 +3,7 @@
   "label": "Meilisearch",
   "blurb": "Instant, typo-tolerant search API · mini dashboard built in · Algolia-style",
   "category": "search",
+  "memory_mb": 200,
   "services": [
     {
       "name": "meilisearch",
@@ -10,15 +11,43 @@
       "desc": "Meilisearch {MEILISEARCH_VERSION} · development mode",
       "link": "http://localhost:{MEILISEARCH_PORT}",
       "facts": [
-        {"label": "URL", "value": "http://localhost:{MEILISEARCH_PORT}", "copy": true},
-        {"label": "Master key", "value": "{MEILISEARCH_MASTER_KEY}", "copy": true, "secret": true},
-        {"label": "In-network", "value": "http://meilisearch:7700", "copy": true}
+        {
+          "label": "URL",
+          "value": "http://localhost:{MEILISEARCH_PORT}",
+          "copy": true
+        },
+        {
+          "label": "Master key",
+          "value": "{MEILISEARCH_MASTER_KEY}",
+          "copy": true,
+          "secret": true
+        },
+        {
+          "label": "In-network",
+          "value": "http://meilisearch:7700",
+          "copy": true
+        }
       ]
     }
   ],
   "settings": [
-    {"key": "MEILISEARCH_PORT", "label": "Port", "type": "port", "group": "Meilisearch"},
-    {"key": "MEILISEARCH_MASTER_KEY", "label": "Master key", "type": "secret", "group": "Meilisearch"},
-    {"key": "MEILISEARCH_VERSION", "label": "Image tag", "type": "text", "group": "Meilisearch"}
+    {
+      "key": "MEILISEARCH_PORT",
+      "label": "Port",
+      "type": "port",
+      "group": "Meilisearch"
+    },
+    {
+      "key": "MEILISEARCH_MASTER_KEY",
+      "label": "Master key",
+      "type": "secret",
+      "group": "Meilisearch"
+    },
+    {
+      "key": "MEILISEARCH_VERSION",
+      "label": "Image tag",
+      "type": "text",
+      "group": "Meilisearch"
+    }
   ]
 }

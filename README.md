@@ -287,6 +287,26 @@ techs travel with their full definition. Settings come along, secrets masked
 unless asked for. Techs already installed locally are skipped (`--force`
 imports over them). The console's Docker page has the same Export / Import.
 
+## Docker memory
+
+Docker Desktop and Colima run everything inside a VM with a fixed memory cap.
+Every catalog entry declares its approximate running footprint, so InfraPack
+can tell you whether the cap fits what you have installed:
+
+```
+infrapack docker memory          # VM cap · what installed techs need · recommendation
+infrapack docker memory auto     # apply the recommendation (restarts Docker)
+infrapack docker memory 8        # or an explicit size in GiB
+```
+
+The recommendation is the sum of installed techs plus the console, with 50%
+headroom, rounded to 512 MiB, at least 2 GiB and at most 75% of the machine.
+`install` prints a note when a new tech pushes it above the current cap;
+nothing resizes on its own, because a resize restarts Docker and stops
+whatever is running. The console's Docker page shows the same numbers and a
+resize button (macOS, with the host agent installed). OrbStack sizes itself,
+and on Linux containers use host memory directly.
+
 ## Start-up behaviour
 
 The console comes back whenever Docker starts (`CONSOLE_RESTART=unless-stopped`).

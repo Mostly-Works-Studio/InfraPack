@@ -3,6 +3,7 @@
   "label": "SQL Server",
   "blurb": "Microsoft SQL Server 2022 Developer · amd64 only, emulated on ARM machines",
   "category": "database",
+  "memory_mb": 1500,
   "services": [
     {
       "name": "mssql",

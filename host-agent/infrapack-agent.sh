@@ -16,7 +16,8 @@ log(){ printf '%s  %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$A/log"; }
 say(){ printf '%s\t%s\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$1" "$2" > "$A/status"; }
 
 [[ -f "$REQ" ]] || exit 0
-action="$(head -c 64 "$REQ" | tr -d '[:space:]')"
+action="$(head -c 64 "$REQ" | tr -d '\n\r')"
+arg="${action#* }"; action="${action%% *}"
 rm -f "$REQ"
 
 for p in /usr/local/bin /opt/homebrew/bin /Applications/Docker.app/Contents/Resources/bin; do
@@ -32,6 +33,17 @@ case "$action" in
       log "restart finished"; say ok "Docker Desktop restarted"
     else
       log "restart failed"; say error "Docker Desktop restart failed"
+    fi ;;
+  set-memory)
+    S="$HOME/Library/Group Containers/group.com.docker/settings-store.json"
+    if [[ "$arg" =~ ^[0-9]+$ && "$arg" -ge 1024 && -f "$S" ]]; then
+      log "setting MemoryMiB=$arg"
+      cp "$S" "$S.infrapack-backup"
+      if grep -q '"MemoryMiB"' "$S"; then sed -i '' -E "s/\"MemoryMiB\" *: *[0-9]+/\"MemoryMiB\": $arg/" "$S"
+      else sed -i '' -E "s/^\{/{\"MemoryMiB\": $arg, /" "$S"; fi
+      if "$DOCKER" desktop restart >>"$A/log" 2>&1; then say ok "Docker Desktop restarted with $((arg / 1024)) GiB"; else say error "restart failed"; fi
+    else
+      log "bad set-memory argument: $arg"; say error "bad memory value"
     fi ;;
   *) log "ignoring unknown action: ${action:-<empty>}"; say error "unknown action" ;;
 esac

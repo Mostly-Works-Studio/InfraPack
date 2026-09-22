@@ -292,6 +292,7 @@ def build_spec(body, existing=None):
     meta = {"stack": stack, "label": label, "custom": True,
             "blurb": str(body.get("blurb") or core.get("desc") or f"custom · {core.get('image')}")[:120],
             "category": str(body.get("category") or "custom")[:24],
+            "memory_mb": int(body.get("memory_mb") or 512),
             "services": meta_services, "settings": settings}
     return {"stack": stack, "label": label, "meta": meta,
             "compose_services": compose_services, "env": env_defaults}

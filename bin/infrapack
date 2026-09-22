@@ -81,6 +81,10 @@ meta() {
     | sed -e 's/\\"/"/g' -e 's/\\u00b7/·/g' -e 's/\\u2014/—/g'
 }
 
+meta_num() {                       # a top-level numeric field of a stack.json
+  sed -n -E "s/^  \"$2\": *([0-9]+).*/\1/p" "$1" 2>/dev/null | head -1
+}
+
 # Service names in a compose fragment: two-space-indented keys under services:.
 compose_services() {
   awk '
@@ -137,6 +141,13 @@ env_remove_stack() {               # drop the marker block and the stack's keys
   mv "$tmp" "$ENV_FILE"
 }
 
+host_mem_mb() {
+  case "$OS" in
+    Darwin) echo $(( $(sysctl -n hw.memsize) / 1024 / 1024 )) ;;
+    *)      awk '/MemTotal/ { printf "%d", $2 / 1024 }' /proc/meminfo ;;
+  esac
+}
+
 # ----------------------------------------------------------------- setup --
 [[ -d "$CATALOG_DIR" ]] || die "catalog not found at $CATALOG_DIR — is INFRAPACK_APP right?"
 
@@ -178,6 +189,7 @@ EOF
   fi
   export DOCKER_SOCK="${DOCKER_SOCK:-/var/run/docker.sock}"
   export INFRAPACK_HOST_OS="${INFRAPACK_HOST_OS:-$OS}"
+  [[ "$IN_CONTAINER" == 1 ]] || export INFRAPACK_HOST_MEM_MB="${INFRAPACK_HOST_MEM_MB:-$(host_mem_mb)}"
   # On Linux the console runs as the invoking user (see compose.linux.yml), so
   # files it writes into the workspace are not root-owned.
   if [[ "$INFRAPACK_HOST_OS" == Linux ]]; then
@@ -683,7 +695,8 @@ cmd_catalog() {
     label="$(meta "$CATALOG_DIR/$name/stack.json" label)"
     blurb="$(meta "$CATALOG_DIR/$name/stack.json" blurb)"
     if is_installed "$name"; then mark="${G}installed${N}  "; else mark="${DIM}available${N}  "; fi
-    local plat; plat="$(meta "$CATALOG_DIR/$name/stack.json" platform)"
+    local plat mbn; plat="$(meta "$CATALOG_DIR/$name/stack.json" platform)"; mbn="$(meta_num "$CATALOG_DIR/$name/stack.json" memory_mb)"
+    [[ -n "$mbn" ]] && blurb="$blurb ${DIM}~$(gib "$mbn") GiB${N}"
     [[ -n "$plat" && "$plat" != "$(arch_platform)" ]] && blurb="$blurb ${Y}(${plat} only: emulated here)${N}"
     printf '%-12s %s%s%s\n' "$name" "$mark" "${B}${label:-$name}${N}" "${blurb:+ · $blurb}"
   done
@@ -774,6 +787,7 @@ finish_install() {
   done
   run_hook "$name" post-install
   ok "$name installed"
+  mem_hint
   if [[ $start -eq 1 ]]; then
     if ! cmd_up "$name"; then
       warn "$name did not start — removing it again (fix the definition and retry)"
@@ -979,6 +993,11 @@ cmd_doctor() {
   case "$OS" in Darwin)
     _label="host agent (Docker restart from the console)"; check test -f "$INFRAPACK_HOME/installed" ;;
   esac
+  if docker info >/dev/null 2>&1; then
+    local need rec cur; need="$(mem_needed_mb)"; rec="$(mem_recommended_mb "$need")"; cur="$(vm_mem_mb)"
+    printf '     memory: VM %s GiB · installed techs need ~%s GiB · recommended %s GiB' "$(gib "$cur")" "$(gib "$need")" "$(gib "$rec")"
+    [[ $rec -gt $((cur + 256)) ]] && printf '  %s← infrapack docker memory auto%s' "$Y" "$N"; echo
+  fi
   echo
   local n; n="$(installed_stacks | wc -l | tr -d ' ')"
   printf '  installed: %s\n' "$( [[ "$n" -gt 0 ]] && installed_stacks | tr '\n' ' ' || echo 'nothing yet')"
@@ -1021,6 +1040,108 @@ cmd_rebuild() {
   docker build -t "$img" -f "$INFRAPACK_APP/console/Dockerfile" "$INFRAPACK_APP"
   dc up -d console
   ok "console rebuilt and restarted"
+}
+
+# ----------------------------------------------------------- docker memory --
+# Docker Desktop (and Colima) run containers in a VM with a fixed memory cap.
+# Each catalog entry declares its approximate running footprint (memory_mb),
+# so InfraPack can say what the installed techs need and resize the VM.
+CONSOLE_MB=150
+mem_needed_mb() {                  # sum over installed techs + the console
+  local stack total=$CONSOLE_MB n
+  for stack in $(installed_stacks); do
+    n="$(meta_num "$STACKS_DIR/$stack/stack.json" memory_mb)"; total=$((total + ${n:-512}))
+  done
+  echo "$total"
+}
+vm_mem_mb() { docker info --format '{{.MemTotal}}' 2>/dev/null | awk '{ printf "%d", $1 / 1024 / 1024 }'; }
+mem_recommended_mb() {             # needed × 1.5, rounded up to 512, floor 2 GiB, cap 75% of the host
+  local need="$1" host; host="$(host_mem_mb)"
+  local rec=$(( (need * 3 / 2 + 511) / 512 * 512 ))
+  [[ $rec -lt 2048 ]] && rec=2048
+  local cap=$(( host * 3 / 4 / 512 * 512 ))
+  [[ $rec -gt $cap ]] && rec=$cap
+  echo "$rec"
+}
+gib() { awk -v m="$1" 'BEGIN { printf "%.1f", m / 1024 }'; }
+docker_engine() { docker info --format '{{.OperatingSystem}}' 2>/dev/null; }
+
+# After install/uninstall: one line if the VM is now too small for what is installed.
+mem_hint() {
+  [[ "$IN_CONTAINER" == 1 ]] && return 0
+  local need rec cur; need="$(mem_needed_mb)"; rec="$(mem_recommended_mb "$need")"; cur="$(vm_mem_mb)"
+  [[ -n "$cur" && $cur -gt 0 ]] || return 0
+  if [[ $rec -gt $((cur + 256)) ]]; then
+    case "$(docker_engine)" in
+      *OrbStack*) ;;                # sizes itself
+      *Desktop*|*colima*|*Colima*)
+        printf '%snote%s installed techs need ~%s GiB when all running; Docker has %s GiB — %sinfrapack docker memory auto%s resizes it (restarts Docker)\n' \
+          "$Y" "$N" "$(gib "$need")" "$(gib "$cur")" "$B" "$N" ;;
+    esac
+  fi
+  return 0
+}
+
+DD_SETTINGS="$HOME/Library/Group Containers/group.com.docker/settings-store.json"
+docker_set_memory_mb() {           # apply a cap and restart the engine
+  local mb="$1" engine; engine="$(docker_engine)"
+  case "$engine" in
+    *Desktop*)
+      [[ "$OS" == Darwin ]] || die "resizing Docker Desktop is supported on macOS only (use Settings → Resources elsewhere)"
+      [[ -f "$DD_SETTINGS" ]] || die "Docker Desktop settings not found at $DD_SETTINGS"
+      local tmp; tmp="$(mktemp)"
+      if grep -q '"MemoryMiB"' "$DD_SETTINGS"; then
+        sed -E "s/\"MemoryMiB\" *: *[0-9]+/\"MemoryMiB\": $mb/" "$DD_SETTINGS" > "$tmp"
+      else
+        sed -E "s/^\{/{\"MemoryMiB\": $mb, /" "$DD_SETTINGS" > "$tmp"
+      fi
+      [[ "$DRY_RUN" == 1 ]] && { echo "would write MemoryMiB=$mb to $DD_SETTINGS and restart Docker Desktop"; rm -f "$tmp"; return 0; }
+      cp "$DD_SETTINGS" "$DD_SETTINGS.infrapack-backup" && mv "$tmp" "$DD_SETTINGS"
+      info "restarting Docker Desktop with $(gib "$mb") GiB (running techs stop; the console comes back by itself)"
+      docker desktop restart >/dev/null 2>&1 || warn "could not restart Docker Desktop automatically — quit and reopen it"
+      ;;
+    *colima*|*Colima*)
+      command -v colima >/dev/null || die "colima CLI not found"
+      [[ "$DRY_RUN" == 1 ]] && { echo "would run: colima stop && colima start --memory $(( (mb + 1023) / 1024 ))"; return 0; }
+      info "restarting Colima with $(( (mb + 1023) / 1024 )) GiB"
+      colima stop && colima start --memory "$(( (mb + 1023) / 1024 ))"
+      ;;
+    *OrbStack*) ok "OrbStack sizes its memory dynamically — nothing to do" ;;
+    *)          die "this engine ($engine) has no VM to resize (Linux uses host memory directly)" ;;
+  esac
+}
+
+cmd_docker() {
+  local sub="${1:-}" arg="${2:-}"
+  case "$sub" in
+    memory|mem)
+      local need rec cur host; need="$(mem_needed_mb)"; rec="$(mem_recommended_mb "$need")"; cur="$(vm_mem_mb)"; host="$(host_mem_mb)"
+      if [[ -z "$arg" ]]; then
+        printf '%sDocker memory%s  engine: %s\n' "$B" "$N" "$(docker_engine)"
+        printf '  host RAM                 %6s GiB\n' "$(gib "$host")"
+        printf '  Docker VM cap            %6s GiB\n' "$(gib "${cur:-0}")"
+        printf '  installed techs need   ~ %6s GiB  (%s + console, if all run at once)\n' "$(gib "$need")" "$(installed_stacks | tr '\n' ' ' | sed 's/ $//')"
+        printf '  recommended              %6s GiB  (×1.5 headroom, 2 GiB floor, 75%% of host cap)\n' "$(gib "$rec")"
+        if [[ $rec -gt $((cur + 256)) ]]; then printf '\n  %sinfrapack docker memory auto%s applies %s GiB (restarts Docker)\n' "$B" "$N" "$(gib "$rec")"
+        elif [[ $cur -gt $((rec + 2048)) ]]; then printf '\n  the VM is larger than needed; %sinfrapack docker memory auto%s trims it to %s GiB\n' "$B" "$N" "$(gib "$rec")"
+        else ok "the VM is sized right for what is installed"; fi
+        return 0
+      fi
+      local mb
+      if [[ "$arg" == auto ]]; then mb="$rec"
+      elif [[ "$arg" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then mb="$(awk -v g="$arg" 'BEGIN { printf "%d", g * 1024 }')"
+      else die "usage: infrapack docker memory [auto|<GiB>] [--dry-run]"; fi
+      [[ $mb -ge 1024 ]] || die "at least 1 GiB"
+      [[ $mb -le $host ]] || die "more than the host has ($(gib "$host") GiB)"
+      docker_set_memory_mb "$mb" ;;
+    restart)
+      case "$(docker_engine)" in
+        *Desktop*) docker desktop restart ;;
+        *colima*|*Colima*) colima restart ;;
+        *) die "restart the engine from the host (systemctl restart docker)" ;;
+      esac ;;
+    *) die "usage: infrapack docker memory [auto|<GiB>] | infrapack docker restart" ;;
+  esac
 }
 
 # --------------------------------------------------------------- host agent --
@@ -1128,7 +1249,8 @@ ${B}Settings${N}
   pull [stack...]      refresh images
 
 ${B}System${N}
-  doctor               check Docker, ports, the console
+  doctor               check Docker, ports, the console, VM memory
+  docker memory [auto|N]  size the Docker VM for the installed techs (restarts Docker)
   update               update InfraPack itself
   agent <sub>          install|uninstall|status — lets the console restart Docker Desktop (macOS)
   exec <service> [cmd] shell into a container
@@ -1140,7 +1262,7 @@ EOF
 }
 
 # -------------------------------------------------------------------- main --
-NO_UI=0 ASSUME_YES=0 FORCE=0 WITH_SECRETS=0 NO_START=0
+NO_UI=0 ASSUME_YES=0 FORCE=0 WITH_SECRETS=0 NO_START=0 DRY_RUN=0
 args=()
 for a in "$@"; do
   case "$a" in
@@ -1149,6 +1271,7 @@ for a in "$@"; do
     --force)        FORCE=1 ;;
     --with-secrets) WITH_SECRETS=1 ;;
     --no-start)     NO_START=1; args+=("$a") ;;   # install/add read it too
+    --dry-run)      DRY_RUN=1; args+=("$a") ;;    # add reads it too
     *) args+=("$a") ;;
   esac
 done
@@ -1189,6 +1312,7 @@ case "$cmd" in
   update|upgrade)     cmd_update ;;
   rebuild)            cmd_rebuild ;;
   agent)              cmd_agent "$@" ;;
+  docker)             cmd_docker "$@" ;;
   exec|shell)         cmd_exec "$@" ;;
   *)
     if is_installed "$cmd"; then stack_command "$cmd" "$@"

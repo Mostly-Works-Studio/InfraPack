@@ -3,6 +3,7 @@
   "label": "Rundeck",
   "blurb": "Job scheduler & runbook automation · web UI · admin/admin · slow first start",
   "category": "workflow",
+  "memory_mb": 1200,
   "services": [
     {
       "name": "rundeck",
@@ -10,15 +11,42 @@
       "desc": "Rundeck {RUNDECK_VERSION} · H2 storage",
       "link": "http://localhost:{RUNDECK_PORT}",
       "facts": [
-        {"label": "URL", "value": "http://localhost:{RUNDECK_PORT}", "copy": true},
-        {"label": "User", "value": "admin", "copy": true},
-        {"label": "Password", "value": "admin", "copy": true, "secret": true},
-        {"label": "In-network", "value": "http://rundeck:4440", "copy": true}
+        {
+          "label": "URL",
+          "value": "http://localhost:{RUNDECK_PORT}",
+          "copy": true
+        },
+        {
+          "label": "User",
+          "value": "admin",
+          "copy": true
+        },
+        {
+          "label": "Password",
+          "value": "admin",
+          "copy": true,
+          "secret": true
+        },
+        {
+          "label": "In-network",
+          "value": "http://rundeck:4440",
+          "copy": true
+        }
       ]
     }
   ],
   "settings": [
-    {"key": "RUNDECK_PORT", "label": "Port", "type": "port", "group": "Rundeck"},
-    {"key": "RUNDECK_VERSION", "label": "Image tag", "type": "text", "group": "Rundeck"}
+    {
+      "key": "RUNDECK_PORT",
+      "label": "Port",
+      "type": "port",
+      "group": "Rundeck"
+    },
+    {
+      "key": "RUNDECK_VERSION",
+      "label": "Image tag",
+      "type": "text",
+      "group": "Rundeck"
+    }
   ]
 }

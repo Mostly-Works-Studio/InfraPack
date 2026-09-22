@@ -224,6 +224,33 @@ def container_states():
     return states
 
 
+def host_mem_mb():
+    try:
+        with open("/proc/meminfo") as f:          # inside the VM on macOS this is the VM, so prefer the value the CLI passes
+            for line in f:
+                if line.startswith("MemTotal"):
+                    return int(line.split()[1]) // 1024
+    except OSError:
+        pass
+    return None
+
+
+def memory_payload(vm):
+    """What the installed techs need vs. the VM cap; mirrors the CLI's maths."""
+    need = 150 + sum(s["memory_mb"] for s in reg.load_all())
+    host = int(os.environ.get("INFRAPACK_HOST_MEM_MB") or 0) or None
+    rec = (need * 3 // 2 + 511) // 512 * 512
+    rec = max(rec, 2048)
+    if host:
+        rec = min(rec, host * 3 // 4 // 512 * 512)
+    cur = int(vm["memMB"]) if vm else None
+    engine = (vm or {}).get("engine", "")
+    resizable = HOST_OS == "Darwin" and "Desktop" in engine and agent_installed()
+    return {"neededMB": need, "recommendedMB": rec, "vmMB": cur, "hostMB": host,
+            "tooSmall": bool(cur and rec > cur + 256), "resizable": resizable,
+            "dynamic": "OrbStack" in engine}
+
+
 def state_payload():
     env = read_env()
     states = container_states()
@@ -247,7 +274,8 @@ def state_payload():
             "version": VERSION, "hostOS": HOST_OS, "home": str(HOME),
             "dockerControl": agent_installed() and HOST_OS == "Darwin",
             "agentStatus": agent_status(),
-            "docker": snap["vm"], "usage": snap["totals"], "sampledAt": snap["at"]}
+            "docker": snap["vm"], "usage": snap["totals"], "sampledAt": snap["at"],
+            "memory": memory_payload(snap["vm"])}
 
 
 # `docker stats` takes ~2s, so it is sampled on a timer and served from cache.
@@ -355,7 +383,7 @@ class Handler(BaseHTTPRequestHandler):
                 uis = [s for s in e["services"] if s["ui"]]
                 out.append({"name": e["stack"], "label": e["label"], "blurb": e["blurb"],
                             "category": e["category"], "installed": e["installed"],
-                            "platform": e.get("platform"),
+                            "platform": e.get("platform"), "memoryMB": e["memory_mb"],
                             "ports": e["ports"], "uiLabel": uis[0]["label"] if uis else None,
                             "desc": reg.expand(core.get("desc", ""), e["defaults"]) if core else "",
                             "services": e["compose_services"]})
@@ -503,10 +531,20 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"ok": code == 0, "output": out.strip()[-4000:]})
 
         if path == "/api/docker":
-            if body.get("action") != "restart":
-                return self._send(400, {"error": "only 'restart' is supported"})
+            action = body.get("action")
+            if action not in ("restart", "set-memory"):
+                return self._send(400, {"error": "unsupported action"})
             if not agent_installed():
                 return self._send(400, {"error": "host agent not installed — run 'infrapack agent install'"})
+            if action == "set-memory":
+                try:
+                    mb = int(body.get("mb"))
+                except (TypeError, ValueError):
+                    return self._send(400, {"error": "mb must be a number"})
+                if mb < 1024 or mb > 262144:
+                    return self._send(400, {"error": "unreasonable memory size"})
+                agent_request(f"set-memory {mb}")
+                return self._send(200, {"ok": True, "output": f"resize to {mb} MiB requested"})
             agent_request("restart-docker")
             return self._send(200, {"ok": True, "output": "restart requested"})
 

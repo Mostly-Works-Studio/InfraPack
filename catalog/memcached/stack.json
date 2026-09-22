@@ -3,20 +3,44 @@
   "label": "Memcached",
   "blurb": "Simple in-memory key/value cache",
   "category": "cache",
+  "memory_mb": 80,
   "services": [
     {
       "name": "memcached",
       "label": "Memcached",
       "desc": "Memcached {MEMCACHED_VERSION} · {MEMCACHED_MEMORY_MB} MB",
       "facts": [
-        {"label": "Host", "value": "localhost:{MEMCACHED_PORT}", "copy": true},
-        {"label": "In-network", "value": "memcached:11211", "copy": true}
+        {
+          "label": "Host",
+          "value": "localhost:{MEMCACHED_PORT}",
+          "copy": true
+        },
+        {
+          "label": "In-network",
+          "value": "memcached:11211",
+          "copy": true
+        }
       ]
     }
   ],
   "settings": [
-    {"key": "MEMCACHED_PORT", "label": "Port", "type": "port", "group": "Memcached"},
-    {"key": "MEMCACHED_MEMORY_MB", "label": "Memory (MB)", "type": "int", "group": "Memcached"},
-    {"key": "MEMCACHED_VERSION", "label": "Image tag", "type": "text", "group": "Memcached"}
+    {
+      "key": "MEMCACHED_PORT",
+      "label": "Port",
+      "type": "port",
+      "group": "Memcached"
+    },
+    {
+      "key": "MEMCACHED_MEMORY_MB",
+      "label": "Memory (MB)",
+      "type": "int",
+      "group": "Memcached"
+    },
+    {
+      "key": "MEMCACHED_VERSION",
+      "label": "Image tag",
+      "type": "text",
+      "group": "Memcached"
+    }
   ]
 }

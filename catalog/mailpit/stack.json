@@ -3,6 +3,7 @@
   "label": "Mailpit",
   "blurb": "SMTP catcher · every outgoing email lands in a web inbox",
   "category": "mail",
+  "memory_mb": 50,
   "services": [
     {
       "name": "mailpit",
@@ -10,16 +11,46 @@
       "desc": "SMTP on :{MAILPIT_PORT} · inbox on :{MAILPIT_UI_PORT}",
       "link": "http://localhost:{MAILPIT_UI_PORT}",
       "facts": [
-        {"label": "SMTP host", "value": "localhost:{MAILPIT_PORT}", "copy": true},
-        {"label": "In-network", "value": "mailpit:1025", "copy": true},
-        {"label": "Auth", "value": "any user/password accepted, no TLS needed"},
-        {"label": "Inbox", "value": "http://localhost:{MAILPIT_UI_PORT}", "copy": true}
+        {
+          "label": "SMTP host",
+          "value": "localhost:{MAILPIT_PORT}",
+          "copy": true
+        },
+        {
+          "label": "In-network",
+          "value": "mailpit:1025",
+          "copy": true
+        },
+        {
+          "label": "Auth",
+          "value": "any user/password accepted, no TLS needed"
+        },
+        {
+          "label": "Inbox",
+          "value": "http://localhost:{MAILPIT_UI_PORT}",
+          "copy": true
+        }
       ]
     }
   ],
   "settings": [
-    {"key": "MAILPIT_PORT", "label": "SMTP port", "type": "port", "group": "Mailpit"},
-    {"key": "MAILPIT_UI_PORT", "label": "Inbox port", "type": "port", "group": "Mailpit"},
-    {"key": "MAILPIT_VERSION", "label": "Image tag", "type": "text", "group": "Mailpit"}
+    {
+      "key": "MAILPIT_PORT",
+      "label": "SMTP port",
+      "type": "port",
+      "group": "Mailpit"
+    },
+    {
+      "key": "MAILPIT_UI_PORT",
+      "label": "Inbox port",
+      "type": "port",
+      "group": "Mailpit"
+    },
+    {
+      "key": "MAILPIT_VERSION",
+      "label": "Image tag",
+      "type": "text",
+      "group": "Mailpit"
+    }
   ]
 }

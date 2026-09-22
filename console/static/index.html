@@ -413,6 +413,17 @@
         <div class="stat-row" id="stats"></div>
       </div>
       <div class="panel">
+        <div class="panel-head"><h2>Memory for what is installed</h2><span class="tag" id="memTag"></span></div>
+        <div class="stat-row" id="memStats"></div>
+        <div class="kv" id="memInfo"></div>
+        <div class="rows" style="padding-top:0" id="memActions" hidden>
+          <div style="grid-column:1/-1;display:flex;gap:9px;align-items:center;flex-wrap:wrap">
+            <button class="btn primary" id="memResizeBtn"></button>
+            <span class="note">Restarts Docker: running techs stop and stay stopped; the console comes back by itself.</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
         <div class="panel-head"><h2>Engine</h2></div>
         <div class="kv" id="engineInfo"></div>
       </div>
@@ -720,6 +731,34 @@ function renderDocker(running){
     InfraPack <b>v${esc(STATE.version)}</b> · check everything with <code>infrapack doctor</code>.`;
   $("#dockerBtn").hidden = !STATE.dockerControl;
   $("#sampleTag").textContent = STATE.sampledAt ? "live · 5s" : "no data";
+  renderMemory();
+}
+
+const gib = mb => mb == null ? "–" : (mb / 1024).toFixed(1) + " GiB";
+function renderMemory(){
+  const m = STATE.memory; if(!m) return;
+  $("#memTag").textContent = m.dynamic ? "dynamic" : m.tooSmall ? "too small" : "ok";
+  $("#memTag").style.color = m.tooSmall ? "var(--warn)" : "";
+  $("#memStats").innerHTML = `
+    <div class="stat"><div class="lbl">Docker VM cap</div><div class="val">${gib(m.vmMB)}</div><div class="sub">${m.hostMB ? "of " + gib(m.hostMB) + " host RAM" : ""}</div></div>
+    <div class="stat"><div class="lbl">Installed techs need</div><div class="val">~${gib(m.neededMB)}</div><div class="sub">${STATE.stacks.length} tech${STATE.stacks.length === 1 ? "" : "s"} + console, all running</div></div>
+    <div class="stat"><div class="lbl">Recommended</div><div class="val">${gib(m.recommendedMB)}</div><div class="sub">×1.5 headroom, 2 GiB floor</div></div>`;
+  let info;
+  if(m.dynamic) info = "OrbStack grows and shrinks the VM by itself, so there is nothing to size.";
+  else if(m.tooSmall) info = `Everything installed would not fit if it all ran at once. Resize the VM to <b>${gib(m.recommendedMB)}</b>` +
+      (m.resizable ? " with the button below." : STATE.hostOS === "Darwin" ? " with <code>infrapack docker memory auto</code>, or install the host agent (<code>infrapack agent install</code>) to do it from here." : " in your engine's settings.");
+  else info = "The VM is sized right for what is installed. Each catalog card shows its approximate footprint, so you can see the effect before installing.";
+  $("#memInfo").innerHTML = info;
+  $("#memActions").hidden = !(m.tooSmall && m.resizable);
+  $("#memResizeBtn").textContent = `Resize to ${gib(m.recommendedMB)} & restart Docker`;
+  $("#memResizeBtn").dataset.mb = m.recommendedMB;
+}
+
+async function resizeDocker(mb){
+  if(!confirm(`Resize the Docker VM to ${gib(mb)} and restart it?\n\n• Running techs stop, and stay stopped until you start them again\n• The console reconnects on its own in about a minute`)) return;
+  stopPoll(); $("#veil").classList.add("on"); $("#veilTitle").textContent = "Resizing Docker…";
+  try{ await api("/api/docker", {action:"set-memory", mb}); }catch(e){ /* engine drops the connection */ }
+  waitForConsole();
 }
 
 // ------------------------------------------------------------ catalog -----
@@ -739,7 +778,7 @@ function tplHtml(c){
   return `<button class="tpl ${picked === c.name ? "sel" : ""} ${c.installed ? "installed" : ""}" data-tpl="${c.name}" ${c.installed ? "disabled" : ""}>
       <span class="t">${esc(c.label)} ${c.installed ? `<span class="chip ok">installed</span>` : ""}${emu ? `<span class="chip warn" title="${esc(c.platform)} image only — runs emulated on this ${esc(host)} machine, slower">emulated</span>` : ""}</span>
       <span class="b">${esc(c.blurb)}</span>
-      <span class="i">${Object.values(c.ports).map(p => ":" + p).join(" · ")}${c.uiLabel ? " · " + esc(c.uiLabel) : ""}</span>
+      <span class="i">${Object.values(c.ports).map(p => ":" + p).join(" · ")}${c.uiLabel ? " · " + esc(c.uiLabel) : ""}${c.memoryMB ? ` · ~${gib(c.memoryMB)}` : ""}</span>
     </button>`;
 }
 
@@ -1032,6 +1071,7 @@ document.addEventListener("click", e => {
     }
   }
   if(e.target.closest("#dockerBtn")) return restartDocker();
+  if(e.target.closest("#memResizeBtn")) return resizeDocker(+$("#memResizeBtn").dataset.mb);
   if(e.target.closest("#saveBtn")) return save();
   if(e.target.closest("#discardBtn")){ dirty = {}; revealed.clear(); return render(); }
 });

@@ -3,6 +3,7 @@
   "label": "NATS",
   "blurb": "Lightweight messaging · pub/sub, request-reply, JetStream streams",
   "category": "messaging",
+  "memory_mb": 50,
   "services": [
     {
       "name": "nats",
@@ -10,15 +11,42 @@
       "desc": "NATS {NATS_VERSION} · JetStream on · monitoring on :{NATS_MONITOR_PORT}",
       "link": "http://localhost:{NATS_MONITOR_PORT}",
       "facts": [
-        {"label": "URL", "value": "nats://localhost:{NATS_PORT}", "copy": true},
-        {"label": "In-network", "value": "nats://nats:4222", "copy": true},
-        {"label": "Monitoring", "value": "http://localhost:{NATS_MONITOR_PORT}", "copy": true}
+        {
+          "label": "URL",
+          "value": "nats://localhost:{NATS_PORT}",
+          "copy": true
+        },
+        {
+          "label": "In-network",
+          "value": "nats://nats:4222",
+          "copy": true
+        },
+        {
+          "label": "Monitoring",
+          "value": "http://localhost:{NATS_MONITOR_PORT}",
+          "copy": true
+        }
       ]
     }
   ],
   "settings": [
-    {"key": "NATS_PORT", "label": "Client port", "type": "port", "group": "NATS"},
-    {"key": "NATS_MONITOR_PORT", "label": "Monitoring port", "type": "port", "group": "NATS"},
-    {"key": "NATS_VERSION", "label": "Image tag", "type": "text", "group": "NATS"}
+    {
+      "key": "NATS_PORT",
+      "label": "Client port",
+      "type": "port",
+      "group": "NATS"
+    },
+    {
+      "key": "NATS_MONITOR_PORT",
+      "label": "Monitoring port",
+      "type": "port",
+      "group": "NATS"
+    },
+    {
+      "key": "NATS_VERSION",
+      "label": "Image tag",
+      "type": "text",
+      "group": "NATS"
+    }
   ]
 }

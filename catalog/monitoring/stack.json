@@ -3,6 +3,7 @@
   "label": "Prometheus + Grafana",
   "blurb": "Metrics · Prometheus scraping, Grafana pre-wired to it · anonymous admin",
   "category": "observability",
+  "memory_mb": 400,
   "services": [
     {
       "name": "prometheus",
@@ -10,9 +11,21 @@
       "desc": "Prometheus {PROMETHEUS_VERSION} · edit files/prometheus/prometheus.yml to add targets",
       "link": "http://localhost:{PROMETHEUS_PORT}",
       "facts": [
-        {"label": "URL", "value": "http://localhost:{PROMETHEUS_PORT}", "copy": true},
-        {"label": "In-network", "value": "http://prometheus:9090", "copy": true},
-        {"label": "Scrape config", "value": "~/.infrapack/stacks/monitoring/files/prometheus/prometheus.yml", "copy": true}
+        {
+          "label": "URL",
+          "value": "http://localhost:{PROMETHEUS_PORT}",
+          "copy": true
+        },
+        {
+          "label": "In-network",
+          "value": "http://prometheus:9090",
+          "copy": true
+        },
+        {
+          "label": "Scrape config",
+          "value": "~/.infrapack/stacks/monitoring/files/prometheus/prometheus.yml",
+          "copy": true
+        }
       ]
     },
     {
@@ -21,18 +34,62 @@
       "desc": "Grafana {GRAFANA_VERSION} · Prometheus datasource provisioned",
       "link": "http://localhost:{GRAFANA_PORT}",
       "facts": [
-        {"label": "Sign-in", "value": "not required (anonymous admin)"},
-        {"label": "Admin", "value": "{GRAFANA_ADMIN}", "copy": true},
-        {"label": "Password", "value": "{GRAFANA_ADMIN_PASSWORD}", "copy": true, "secret": true}
+        {
+          "label": "Sign-in",
+          "value": "not required (anonymous admin)"
+        },
+        {
+          "label": "Admin",
+          "value": "{GRAFANA_ADMIN}",
+          "copy": true
+        },
+        {
+          "label": "Password",
+          "value": "{GRAFANA_ADMIN_PASSWORD}",
+          "copy": true,
+          "secret": true
+        }
       ]
     }
   ],
   "settings": [
-    {"key": "PROMETHEUS_PORT", "label": "Port", "type": "port", "group": "Prometheus"},
-    {"key": "PROMETHEUS_VERSION", "label": "Image tag", "type": "text", "group": "Prometheus"},
-    {"key": "GRAFANA_PORT", "label": "Port", "type": "port", "group": "Grafana"},
-    {"key": "GRAFANA_ADMIN", "label": "Admin user", "type": "text", "group": "Grafana", "note": "applied on first start only"},
-    {"key": "GRAFANA_ADMIN_PASSWORD", "label": "Admin password", "type": "secret", "group": "Grafana", "note": "applied on first start only"},
-    {"key": "GRAFANA_VERSION", "label": "Image tag", "type": "text", "group": "Grafana"}
+    {
+      "key": "PROMETHEUS_PORT",
+      "label": "Port",
+      "type": "port",
+      "group": "Prometheus"
+    },
+    {
+      "key": "PROMETHEUS_VERSION",
+      "label": "Image tag",
+      "type": "text",
+      "group": "Prometheus"
+    },
+    {
+      "key": "GRAFANA_PORT",
+      "label": "Port",
+      "type": "port",
+      "group": "Grafana"
+    },
+    {
+      "key": "GRAFANA_ADMIN",
+      "label": "Admin user",
+      "type": "text",
+      "group": "Grafana",
+      "note": "applied on first start only"
+    },
+    {
+      "key": "GRAFANA_ADMIN_PASSWORD",
+      "label": "Admin password",
+      "type": "secret",
+      "group": "Grafana",
+      "note": "applied on first start only"
+    },
+    {
+      "key": "GRAFANA_VERSION",
+      "label": "Image tag",
+      "type": "text",
+      "group": "Grafana"
+    }
   ]
 }
