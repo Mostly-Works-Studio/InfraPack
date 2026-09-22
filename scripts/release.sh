@@ -29,8 +29,11 @@ cd "$HERE"
 [[ -z "$(git status --porcelain)" ]] || { echo "working tree is not clean" >&2; exit 1; }
 bash -n bin/infrapack
 python3 -m py_compile console/*.py
-printf '%s\n' "$v" > VERSION
-git add VERSION
-git commit -q -m "release v$v"
+git rev-parse -q --verify "refs/tags/v$v" >/dev/null && { echo "tag v$v already exists" >&2; exit 1; }
+if [[ "$(tr -d '[:space:]' < VERSION)" != "$v" ]]; then
+  printf '%s\n' "$v" > VERSION
+  git add VERSION
+  git commit -q -m "release v$v"
+fi
 git tag -a "v$v" -m "InfraPack v$v"
 echo "tagged v$v — now: git push && git push --tags"
