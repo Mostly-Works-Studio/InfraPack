@@ -362,6 +362,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, out)
         if path in ("/", "/index.html"):
             return self._send(200, (STATIC / "index.html").read_bytes(), "text/html; charset=utf-8")
+        if path in ("/icon.png", "/favicon.png", "/logo.png", "/favicon.ico"):
+            f = STATIC / ("favicon.png" if path == "/favicon.ico" else path.lstrip("/"))
+            if f.exists():
+                self.send_response(200)
+                self.send_header("Content-Type", "image/png")
+                self.send_header("Content-Length", str(f.stat().st_size))
+                self.send_header("Cache-Control", "public, max-age=86400")
+                self.end_headers()
+                self.wfile.write(f.read_bytes())
+                return
         if path == "/api/export":
             code, out = run(["python3", str(APP / "console" / "pack.py"), "export"] +
                             (["--with-secrets"] if "secrets=1" in self.path else []), timeout=30)

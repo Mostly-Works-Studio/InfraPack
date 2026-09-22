@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.png" alt="InfraPack" width="360"></p>
+
 # InfraPack
 
 Local development infrastructure, one command. Install the techs your project
