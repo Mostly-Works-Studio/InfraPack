@@ -197,6 +197,7 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // update titles / checkmarks / enabled flags of the existing items (safe while the menu is open)
     private func applyState() {
+        if let head = menu.items.first(where: { $0.tag == 1 }), reachable, head.title != summaryText { head.title = summaryText }
         for it in menu.items {
             if let name = it.representedObject as? String, let row = rows[name],
                let stack = stacks.first(where: { ($0["name"] as? String) == name }) {
@@ -209,23 +210,39 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updateBadge()
     }
 
+    private var summaryText: String {
+        let up = services.filter { ($0["up"] as? Bool) == true }.count
+        var parts = ["\(up) running"]
+        if let usage = state["usage"] as? [String: Any], let used = usage["memMB"] as? Double, up > 0,
+           let docker = state["docker"] as? [String: Any], let cap = docker["memMB"] as? Double {
+            parts.append(String(format: "%.1f of %.1f GB memory", used / 1024, cap / 1024))
+        }
+        return parts.joined(separator: " · ")
+    }
+
     private func rebuild() {
         rows.removeAll()
         menu.removeAllItems()
-        let title = NSMenuItem(title: reachable ? "InfraPack" : "InfraPack — console not running", action: nil, keyEquivalent: "")
-        title.isEnabled = false
-        menu.addItem(title)
+        let head = NSMenuItem(title: reachable ? summaryText : "Console not running", action: nil, keyEquivalent: "")
+        head.isEnabled = false
+        head.tag = 1                                  // refreshed in place by applyState
+        menu.addItem(head)
         if !reachable {
             menu.addItem(item("Start InfraPack", #selector(startInfraPack)))
             menu.addItem(.separator())
-            menu.addItem(item("Quit", #selector(quit), key: "q"))
+            menu.addItem(item("Quit InfraPack Menu", #selector(quit), key: "q"))
             return
         }
-        menu.addItem(item("Open console", #selector(openConsole), key: "o"))
+        if let mem = state["memory"] as? [String: Any], (mem["tooSmall"] as? Bool) == true, let rec = mem["recommendedMB"] as? Int {
+            let warn = NSMenuItem(title: String(format: "Docker VM too small — resize to %.1f GiB…", Double(rec) / 1024), action: #selector(openDockerPage), keyEquivalent: "")
+            warn.target = self
+            if let img = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: nil) { warn.image = img }
+            menu.addItem(warn)
+        }
         menu.addItem(.separator())
 
         if stacks.isEmpty {
-            let none = NSMenuItem(title: "Nothing installed — open the console to pick a tech", action: nil, keyEquivalent: "")
+            let none = NSMenuItem(title: "Nothing installed yet", action: nil, keyEquivalent: "")
             none.isEnabled = false
             menu.addItem(none)
         }
@@ -253,13 +270,16 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
             }
         }
-        if !stacks.isEmpty {
+        menu.addItem(.separator())
+        menu.addItem(item("Install more…", #selector(openCatalog), key: "i"))
+        menu.addItem(item("Open console", #selector(openConsole), key: "o"))
+        if stacks.count > 1 {
             menu.addItem(.separator())
             menu.addItem(item("Start all", #selector(startAll)))
             menu.addItem(item("Stop all", #selector(stopAll)))
         }
         menu.addItem(.separator())
-        menu.addItem(item("Quit", #selector(quit), key: "q"))
+        menu.addItem(item("Quit InfraPack Menu", #selector(quit), key: "q"))
     }
 
     private func item(_ title: String, _ action: Selector, key: String = "") -> NSMenuItem {
@@ -279,6 +299,12 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         NSWorkspace.shared.open(consoleURL)
+    }
+    @objc private func openCatalog() { openConsolePage("catalog") }
+    @objc private func openDockerPage() { openConsolePage("docker") }
+    private func openConsolePage(_ page: String) {
+        // the desktop app shows whatever the console last showed; a page deep link needs the URL, so use the browser
+        NSWorkspace.shared.open(consoleURL.appendingPathComponent("").absoluteURL.appending(fragment: page))
     }
     @objc private func openLink(_ sender: NSMenuItem) {
         if let ref = sender.representedObject as? [String: String], let s = ref["url"], let url = URL(string: s) { NSWorkspace.shared.open(url) }
@@ -305,6 +331,14 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
         task.arguments = ["-lc", "infrapack up >/dev/null 2>&1 || ~/.local/bin/infrapack up >/dev/null 2>&1 || /opt/homebrew/bin/infrapack up >/dev/null 2>&1"]
         try? task.run()
         DispatchQueue.main.asyncAfter(deadline: .now() + 4) { self.refresh() }
+    }
+}
+
+extension URL {
+    func appending(fragment: String) -> URL {
+        var c = URLComponents(url: self, resolvingAgainstBaseURL: false)!
+        c.fragment = fragment
+        return c.url ?? self
     }
 }
 

@@ -7,258 +7,284 @@
 <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png">
 <link rel="apple-touch-icon" href="/icon-512.png">
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#141a2a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="InfraPack">
+<meta name="theme-color" content="#0f1420">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
+  /* ------------------------------------------------------------ tokens --- */
   :root{
-    --nav:#141a2a; --nav-2:#1d2538; --nav-ink:#e9edf7; --nav-muted:#7f8aa8;
-    --accent:#2f7cf6; --accent-ink:#fff; --accent-soft:rgba(47,124,246,.12);
-    --bg:#f5f6fa; --panel:#fff; --ink:#151a28; --muted:#67708a; --line:#e4e7ef;
-    --ok:#16a34a; --warn:#d97706; --err:#e5484d; --off:#c7cbd6;
-    --shadow:0 1px 2px rgba(20,26,42,.05),0 1px 3px rgba(20,26,42,.07);
-    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    --rail:250px;
+    --bg:#f3f5f9; --panel:#ffffff; --panel-2:#f8fafd; --ink:#12192b; --ink-2:#2d3650;
+    --muted:#5c6786; --faint:#8d97ad; --line:#dde3ee; --line-2:#e9edf5;
+    --accent:#2563eb; --accent-ink:#ffffff; --accent-soft:rgba(37,99,235,.10); --accent-soft-2:rgba(37,99,235,.18);
+    --ok:#16a34a; --ok-soft:rgba(22,163,74,.12); --warn:#d97706; --warn-soft:rgba(217,119,6,.12);
+    --crit:#dc2626; --crit-soft:rgba(220,38,38,.12); --off:#c3cad8;
+    --rail-bg:#0f1420; --rail-ink:#e8edf7; --rail-muted:#7f8aa6; --rail-line:rgba(255,255,255,.08);
+    --shadow:0 1px 2px rgba(18,25,43,.06),0 2px 6px rgba(18,25,43,.05);
+    --shadow-lg:0 14px 40px rgba(18,25,43,.22);
+    --sans:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --rail:232px; --r:10px;
+    color-scheme:light;
   }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f1420; --panel:#161d2c; --panel-2:#1b2334; --ink:#e8edf7; --ink-2:#c8d0e2;
+      --muted:#8c97b0; --faint:#66718c; --line:#263047; --line-2:#1f2839;
+      --accent:#5b8cff; --accent-ink:#0b1120; --accent-soft:rgba(91,140,255,.14); --accent-soft-2:rgba(91,140,255,.24);
+      --ok:#34c26b; --ok-soft:rgba(52,194,107,.16); --warn:#f0a132; --warn-soft:rgba(240,161,50,.16);
+      --crit:#f26464; --crit-soft:rgba(242,100,100,.16); --off:#3a4560;
+      --rail-bg:#0a0f19; --rail-line:rgba(255,255,255,.07);
+      --shadow:0 1px 2px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.25); --shadow-lg:0 18px 50px rgba(0,0,0,.55);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1420; --panel:#161d2c; --panel-2:#1b2334; --ink:#e8edf7; --ink-2:#c8d0e2;
+    --muted:#8c97b0; --faint:#66718c; --line:#263047; --line-2:#1f2839;
+    --accent:#5b8cff; --accent-ink:#0b1120; --accent-soft:rgba(91,140,255,.14); --accent-soft-2:rgba(91,140,255,.24);
+    --ok:#34c26b; --ok-soft:rgba(52,194,107,.16); --warn:#f0a132; --warn-soft:rgba(240,161,50,.16);
+    --crit:#f26464; --crit-soft:rgba(242,100,100,.16); --off:#3a4560;
+    --rail-bg:#0a0f19; --rail-line:rgba(255,255,255,.07);
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.25); --shadow-lg:0 18px 50px rgba(0,0,0,.55);
+    color-scheme:dark;
+  }
+
+  /* ------------------------------------------------------------- base --- */
   *{box-sizing:border-box}
   html,body{height:100%}
-  body{margin:0;background:var(--bg);color:var(--ink);
-       font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-       -webkit-font-smoothing:antialiased}
-  button{font:inherit;color:inherit;cursor:pointer}
-  code,kbd{font-family:var(--mono);font-size:.92em;background:var(--accent-soft);color:var(--accent);
-           border-radius:5px;padding:1px 5px}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+  a{color:var(--accent)}
+  code,kbd,.mono{font-family:var(--mono);font-size:.92em;font-variant-numeric:tabular-nums}
+  code{background:var(--accent-soft);color:var(--accent);border-radius:5px;padding:1px 5px}
+  kbd{background:var(--panel-2);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;color:var(--ink-2);font-size:11px}
+  h1,h2,h3{text-wrap:balance;margin:0}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+  [hidden]{display:none!important}
 
-  /* ---------------------------------------------------------- sidebar --- */
+  /* ------------------------------------------------------------- rail --- */
   .app{display:flex;min-height:100vh}
-  .rail{width:var(--rail);flex:none;background:var(--nav);color:var(--nav-ink);
-        display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
-  .brand{display:flex;align-items:center;gap:11px;padding:18px 18px 22px}
-  .logo{width:36px;height:36px;flex:none;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(47,124,246,.45))}
-  .brand-name{font-weight:650;letter-spacing:-.01em;font-size:15px;line-height:1.2}
-  .brand-sub{font-size:9.5px;letter-spacing:.11em;color:var(--nav-muted);text-transform:uppercase;
-             margin-top:2px}
-  .nav-group{padding:0 10px;margin-bottom:14px}
-  .nav-label{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--nav-muted);
-             padding:0 8px 7px}
-  .nav-item{position:relative;display:flex;align-items:center;gap:10px;width:100%;
-            background:none;border:0;border-radius:8px;padding:8px 10px;text-align:left;
-            color:#aeb7cf;font-size:13.5px}
-  .nav-item:hover{background:rgba(255,255,255,.05);color:var(--nav-ink)}
-  .nav-item.active{background:rgba(255,255,255,.08);color:#fff;font-weight:550}
-  .nav-item.active::before{content:"";position:absolute;left:-10px;top:7px;bottom:7px;width:3px;
-                           background:var(--accent);border-radius:0 3px 3px 0}
-  .nav-item svg{width:15px;height:15px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;
-                stroke-linecap:round;stroke-linejoin:round}
-  .badge{margin-left:auto;font-size:11px;min-width:20px;text-align:center;border-radius:999px;
-         padding:1px 7px;background:rgba(255,255,255,.1);color:var(--nav-ink)}
+  .rail{width:var(--rail);flex:none;background:var(--rail-bg);color:var(--rail-ink);position:sticky;top:0;height:100vh;
+        display:flex;flex-direction:column;padding:16px 12px}
+  .brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px}
+  .brand img{width:34px;height:34px;object-fit:contain}
+  .brand-name{font-weight:700;font-size:15px;letter-spacing:-.01em;line-height:1.15}
+  .brand-ver{font-family:var(--mono);font-size:10.5px;color:var(--rail-muted);margin-top:2px}
+  .nav-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--rail-muted);padding:10px 10px 6px;font-weight:600}
+  .nav{display:flex;align-items:center;gap:10px;width:100%;border-radius:8px;padding:8px 10px;text-align:left;color:#b4bdd3;
+       font-size:13.5px;font-weight:500;position:relative}
+  .nav:hover{background:rgba(255,255,255,.05);color:var(--rail-ink)}
+  .nav.active{background:rgba(255,255,255,.09);color:#fff;font-weight:600}
+  .nav.active::before{content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+  .nav svg{width:15px;height:15px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .nav .key{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--rail-muted);opacity:0;transition:opacity .12s}
+  .rail:hover .nav .key{opacity:.9}
+  .badge{margin-left:auto;font-family:var(--mono);font-size:10.5px;min-width:22px;text-align:center;border-radius:999px;padding:1px 7px;
+         background:rgba(255,255,255,.1);color:var(--rail-ink)}
+  .badge + .key{margin-left:6px}
   .badge.live{background:var(--accent);color:#fff}
-  .rail-foot{margin-top:auto;padding:14px}
-  .rail-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
-            background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);
-            border-radius:9px;padding:10px;color:var(--nav-ink);font-size:12.5px}
-  .rail-btn:hover:not(:disabled){background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.2)}
-  .rail-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.9;
-                stroke-linecap:round;stroke-linejoin:round}
-  .rail-note{font-size:11px;color:var(--nav-muted);text-align:center;margin-top:10px;line-height:1.5}
-  .rail-note b{color:#aeb7cf;font-weight:500}
+  .badge.warn{background:var(--warn);color:#1a1200}
+  .rail-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding:10px 4px 0;border-top:1px solid var(--rail-line)}
+  .machine{font-family:var(--mono);font-size:10.5px;color:var(--rail-muted);padding:6px 6px 0;line-height:1.7}
+  .machine b{color:#c8d0e2;font-weight:500}
+  .machine .m{display:block;height:4px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:4px}
+  .machine .m i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .4s}
+  .machine .m i.warn{background:var(--warn)} .machine .m i.hot{background:var(--crit)}
+  .rail-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;border:1px solid var(--rail-line);border-radius:8px;
+            padding:8px;color:var(--rail-ink);font-size:12.5px;font-weight:500}
+  .rail-btn:hover{background:rgba(255,255,255,.06)}
+  .rail-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .rail-row{display:flex;gap:6px}
+  .rail-row .rail-btn{flex:1}
 
   /* ------------------------------------------------------------- main --- */
-  .main{flex:1;min-width:0;padding:30px 34px 96px;max-width:1180px}
-  .crumb{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;
-         color:var(--accent);font-weight:600;margin-bottom:9px}
-  h1{font-size:26px;margin:0 0 7px;letter-spacing:-.02em;font-weight:680}
-  h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px;
-     display:flex;align-items:center;gap:9px}
-  h3 .n{font-family:var(--mono);font-weight:500;letter-spacing:0;text-transform:none}
-  .page-head{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
-  .page-head .head-actions{margin-left:auto;display:flex;gap:8px;padding-top:24px}
-  .lede{color:var(--muted);font-size:13.5px;margin:0 0 20px;max-width:72ch}
-  .note{font-size:12px;color:var(--muted)}
+  .main{flex:1;min-width:0;padding-block:28px 100px;padding-inline:36px;max-width:1240px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:500;margin-bottom:8px}
+  h1{font-size:24px;font-weight:700;letter-spacing:-.02em}
+  .page-head{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+  .page-head .actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .lede{color:var(--muted);font-size:13.5px;margin:0 0 22px;max-width:68ch}
+  h3.sec{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:10px;margin:26px 0 10px}
+  h3.sec .n{font-family:var(--mono);letter-spacing:0;text-transform:none;font-weight:500;color:var(--faint)}
+  h3.sec::after{content:"";flex:1;height:1px;background:var(--line-2)}
 
-  .strip{background:var(--nav);color:var(--nav-ink);border-radius:11px;padding:13px 16px;
-         display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:20px}
-  .strip .pill{background:rgba(255,255,255,.08);border-radius:7px;padding:4px 10px;
-               font-family:var(--mono);font-size:11.5px}
-  .strip .pill.on{background:var(--accent);color:#fff}
-  .strip .arrow{color:var(--nav-muted);font-size:12px}
-  .strip-note{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--nav-muted);
-              text-align:right}
-  .strip-note b{color:#fff;font-weight:600}
-  .meter{width:74px;height:6px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden;flex:none}
-  .meter i{display:block;height:100%;background:var(--accent);border-radius:4px;transition:width .4s}
-  .meter i.warn{background:var(--warn)} .meter i.hot{background:var(--err)}
-
-  /* ------------------------------------------------------------ cards --- */
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;
-        box-shadow:var(--shadow);display:flex;flex-direction:column}
-  .card.busy{opacity:.6}
-  .skel{height:150px;border-style:dashed;position:relative;overflow:hidden}
-  .skel::after{content:"";position:absolute;inset:0;
-               background:linear-gradient(90deg,transparent,rgba(47,124,246,.07),transparent);
-               animation:sweep 1.3s infinite}
-  @keyframes sweep{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
-  .card-head{display:flex;align-items:center;gap:10px;padding:13px 15px}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--off);flex:none}
-  .dot.up{background:var(--ok)}
-  .dot.starting{background:var(--warn);animation:pulse 1.2s infinite}
-  .dot.unhealthy,.dot.exited{background:var(--err)}
-  @keyframes pulse{50%{opacity:.35}}
-  .card-title{min-width:0;flex:1}
-  .name{font-weight:620;letter-spacing:-.01em;line-height:1.25}
-  .desc{color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ctl{display:flex;align-items:center;gap:5px;flex:none}
-
-  .switch{position:relative;width:34px;height:20px;border-radius:999px;background:var(--off);
-          border:0;padding:0;flex:none;transition:background .16s}
-  .switch.on{background:var(--accent)}
-  .switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;
-                 border-radius:50%;background:#fff;transition:transform .16s;
-                 box-shadow:0 1px 2px rgba(0,0,0,.25)}
-  .switch.on::after{transform:translateX(14px)}
-  .switch:disabled{cursor:progress;opacity:.6}
-
-  .icon{background:none;border:0;padding:4px;border-radius:6px;color:var(--muted);
-        display:inline-flex;line-height:0}
-  .icon:hover:not(:disabled){background:var(--bg);color:var(--ink)}
-  .icon:disabled{opacity:.3;cursor:not-allowed}
-  .icon svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.9;
-            stroke-linecap:round;stroke-linejoin:round}
-  .icon.done{color:var(--ok)}
-
-  .facts{border-top:1px solid var(--line);padding:7px 15px;flex:1}
-  .fact{display:flex;align-items:center;gap:8px;min-height:25px}
-  .fact .k{color:var(--muted);font-size:11.5px;width:104px;flex:none}
-  .fact .v{font-family:var(--mono);font-size:11.5px;flex:1;min-width:0;
-           white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .fact.open .v{white-space:normal;word-break:break-all}
-  .fact .tools{display:flex;flex:none;opacity:.5;transition:opacity .12s}
-  .fact:hover .tools,.fact.open .tools{opacity:1}
-  .card-foot{display:flex;align-items:center;gap:9px;border-top:1px solid var(--line);
-             padding:9px 15px;background:#fbfbfd;border-radius:0 0 11px 11px;margin-top:auto}
-  a.open{display:inline-flex;align-items:center;gap:5px;color:var(--accent);text-decoration:none;
-         font-size:12px;font-weight:550}
-  a.open:hover{text-decoration:underline}
-  a.open svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;
-             stroke-linecap:round;stroke-linejoin:round}
-  .usage{font-family:var(--mono);font-size:10.5px;color:var(--muted);white-space:nowrap}
-  .usage b{font-weight:600;color:var(--ink)}
-  .state{margin-left:auto;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-  .stack-head{display:flex;align-items:center;gap:9px;margin:22px 0 10px}
-  .stack-head:first-child{margin-top:0}
-  .stack-head .t{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
-  .stack-head .tools{margin-left:auto;display:flex;gap:4px}
-  .tiny{font-size:11.5px;background:none;border:1px solid var(--line);border-radius:7px;padding:3px 9px;
-        color:var(--muted)}
+  .btn{display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 14px;
+       font-size:13px;font-weight:500;box-shadow:var(--shadow);white-space:nowrap;text-decoration:none;color:var(--ink)}
+  .btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+  .btn.primary:hover:not(:disabled){filter:brightness(1.08);color:var(--accent-ink)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .tiny{font-size:12px;font-weight:500;border:1px solid var(--line);border-radius:7px;padding:4px 10px;color:var(--muted);background:var(--panel)}
   .tiny:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
-  .tiny:disabled{opacity:.4;cursor:not-allowed}
-  .modes{display:flex;gap:4px;margin-left:12px}
-  .tiny.mode.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .tiny:disabled{opacity:.45;cursor:not-allowed}
+  .tiny.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 
-  /* -------------------------------------------------------------- empty --- */
-  .empty{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:40px 30px;
-         text-align:center}
-  .empty h2{margin:0 0 6px;font-size:17px}
-  .empty p{margin:0 auto 18px;color:var(--muted);max-width:54ch;font-size:13px}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.02em;border-radius:999px;padding:2px 9px;
+        background:var(--line-2);color:var(--muted);white-space:nowrap}
+  .chip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--off);flex:none}
+  .chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.ok::before{background:var(--ok)}
+  .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.warn::before{background:var(--warn);animation:pulse 1.2s infinite}
+  .chip.crit{background:var(--crit-soft);color:var(--crit)} .chip.crit::before{background:var(--crit)}
+  .chip.accent{background:var(--accent-soft);color:var(--accent)} .chip.accent::before,.chip.plain::before{display:none}
+  @keyframes pulse{50%{opacity:.3}}
 
-  /* ------------------------------------------------------------ catalog --- */
-  .tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-bottom:20px}
-  .tpl{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px;
-       text-align:left;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:5px;position:relative}
-  .tpl:hover:not(:disabled){border-color:var(--accent)}
-  .tpl.sel{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-  .tpl.installed{opacity:.55}
-  .tpl .t{font-weight:620;font-size:13.5px;display:flex;gap:7px;align-items:center}
-  .tpl .b{font-size:11.5px;color:var(--muted);line-height:1.45}
-  .tpl .i{font-family:var(--mono);font-size:10.5px;color:var(--accent);margin-top:2px}
-  .chip{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;border-radius:5px;padding:1px 6px;
-        background:var(--accent-soft);color:var(--accent);font-weight:600}
-  .chip.ok{background:rgba(22,163,74,.12);color:var(--ok)}
-  .chip.warn{background:rgba(217,119,6,.12);color:var(--warn)}
-  .addcard{border:1.5px dashed var(--line);border-radius:11px;background:none;color:var(--muted);
-           min-height:120px;display:flex;align-items:center;justify-content:center;gap:7px;
-           font-size:13px;font-weight:550}
+  /* ------------------------------------------------------- status bar --- */
+  .statusbar{display:flex;align-items:center;gap:22px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+             padding:12px 16px;margin-bottom:22px;box-shadow:var(--shadow)}
+  .stat{display:flex;flex-direction:column;gap:3px;min-width:110px}
+  .stat .k{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600}
+  .stat .v{font-family:var(--mono);font-size:14px;color:var(--ink);font-weight:500}
+  .stat .v small{color:var(--muted);font-weight:400}
+  .meter{width:120px;height:6px;border-radius:4px;background:var(--line-2);overflow:hidden;margin-top:3px}
+  .meter i{display:block;height:100%;background:var(--accent);border-radius:4px;transition:width .4s}
+  .meter i.warn{background:var(--warn)} .meter i.hot{background:var(--crit)}
+  .statusbar .right{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+
+  /* ------------------------------------------------------------ stacks --- */
+  .stack{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+  .stack.busy{opacity:.65}
+  .stack-head{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line-2);background:var(--panel-2);flex-wrap:wrap}
+  .stack-head .t{font-weight:700;font-size:15px;letter-spacing:-.01em}
+  .stack-head .meta{font-family:var(--mono);font-size:11px;color:var(--faint)}
+  .stack-head .tools{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .services{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+  .svc{padding:14px 16px;border-right:1px solid var(--line-2);border-bottom:1px solid var(--line-2);display:flex;flex-direction:column;gap:10px;min-width:0}
+  .svc-head{display:flex;align-items:center;gap:10px}
+  .svc-head .name{font-weight:600;font-size:13.5px}
+  .svc-head .desc{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .svc-head .ctl{margin-left:auto;display:flex;align-items:center;gap:4px;flex:none}
+  .facts{display:grid;grid-template-columns:max-content minmax(0,1fr) auto;column-gap:12px;row-gap:3px;align-items:center}
+  .facts .row{display:contents}
+  .facts .k{font-size:11.5px;color:var(--muted)}
+  .facts .v{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+  .facts .v.open{white-space:normal;word-break:break-all}
+  .facts .tools{display:flex;opacity:.4;transition:opacity .12s}
+  .facts .row:hover .tools,.facts .row:focus-within .tools{opacity:1}
+  .facts .row:hover .v{color:var(--ink)}
+  .svc-foot{display:flex;align-items:center;gap:10px;margin-top:auto;padding-top:4px}
+  .svc-foot .usage{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+  .svc-foot .usage b{color:var(--muted);font-weight:500}
+  .svc-foot .chip{margin-left:auto}
+  a.open{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;text-decoration:none}
+  a.open:hover{text-decoration:underline}
+  a.open svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  .switch{position:relative;width:36px;height:21px;border-radius:999px;background:var(--off);flex:none;transition:background .18s}
+  .switch.on{background:var(--accent)}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;transition:transform .18s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+  .switch.on::after{transform:translateX(15px)}
+  .switch:disabled{cursor:progress;opacity:.55}
+  .icon{padding:5px;border-radius:6px;color:var(--muted);display:inline-flex;line-height:0}
+  .icon:hover:not(:disabled){background:var(--accent-soft);color:var(--accent)}
+  .icon:disabled{opacity:.3;cursor:not-allowed}
+  .icon svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .icon.done{color:var(--ok)}
+  .menu-wrap{position:relative}
+  .menu{position:absolute;right:0;top:calc(100% + 6px);z-index:5;background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:var(--shadow-lg);min-width:180px;padding:6px;display:none}
+  .menu.open{display:block}
+  .menu button{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:6px;font-size:13px}
+  .menu button:hover{background:var(--accent-soft);color:var(--accent)}
+  .menu button.danger:hover{background:var(--crit-soft);color:var(--crit)}
+
+  .empty{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:44px 30px;text-align:center}
+  .empty h2{font-size:18px;font-weight:700;margin:0 0 6px}
+  .empty p{margin:0 auto 18px;color:var(--muted);max-width:56ch;font-size:13.5px}
+  .addcard{border:1.5px dashed var(--line);border-radius:var(--r);color:var(--muted);min-height:72px;width:100%;display:flex;align-items:center;
+           justify-content:center;gap:8px;font-size:13px;font-weight:600}
   .addcard:hover{border-color:var(--accent);color:var(--accent)}
   .addcard svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
-  .search{width:100%;max-width:380px;margin-bottom:14px}
 
-  /* --------------------------------------------------------- settings --- */
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:11px;
-         box-shadow:var(--shadow);margin-bottom:13px}
-  .panel-head{display:flex;align-items:center;gap:9px;padding:12px 15px;border-bottom:1px solid var(--line)}
-  .panel-head h2{font-size:13.5px;margin:0;font-weight:620}
-  .tag{font-family:var(--mono);font-size:10.5px;background:var(--accent-soft);color:var(--accent);
-       border-radius:6px;padding:2px 7px;margin-left:auto}
-  .rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:11px;padding:14px 15px}
-  label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted)}
-  label .hint{font-size:10.5px;opacity:.8}
+  /* ----------------------------------------------------------- catalog --- */
+  .search{position:relative;max-width:440px;margin-bottom:6px}
+  .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--faint);fill:none;stroke-width:2;stroke-linecap:round}
+  .search input{padding-left:34px;padding-right:44px}
+  .search kbd{position:absolute;right:9px;top:50%;transform:translateY(-50%)}
+  .tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(236px,1fr));gap:12px;margin-bottom:22px}
+  .tpl{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;text-align:left;box-shadow:var(--shadow);display:flex;
+       flex-direction:column;gap:6px;transition:border-color .12s,transform .12s}
+  .tpl:hover:not(:disabled){border-color:var(--accent);transform:translateY(-1px)}
+  .tpl.sel{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft-2)}
+  .tpl.installed{opacity:.55}
+  .tpl .t{font-weight:700;font-size:13.5px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+  .tpl .b{font-size:11.5px;color:var(--muted);line-height:1.45;flex:1}
+  .tpl .i{font-family:var(--mono);font-size:10.5px;color:var(--accent);display:flex;gap:8px;flex-wrap:wrap}
+  .tpl .i .mem{color:var(--faint);margin-left:auto}
+
+  /* ------------------------------------------------------------ panels --- */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:14px}
+  .panel-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line-2)}
+  .panel-head h2{font-size:13.5px;font-weight:700}
+  .tag{font-family:var(--mono);font-size:10.5px;background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:2px 7px;margin-left:auto}
+  .tag.warn{background:var(--warn-soft);color:var(--warn)} .tag.ok{background:var(--ok-soft);color:var(--ok)}
+  .rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;padding:14px 16px}
+  .rows .wide{grid-column:1/-1}
+  .kv{padding:12px 16px;font-size:13px;color:var(--muted);line-height:1.65}
+  .kv b{color:var(--ink);font-weight:600}
+  .actions-row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:0 16px 14px}
+  .note{font-size:12px;color:var(--muted)}
+  label{display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:var(--muted);font-weight:500}
+  label .hint{font-weight:400;opacity:.8}
   .inp{position:relative;display:flex;align-items:center}
-  input,select,textarea{font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;
-        background:#fbfbfd;color:var(--ink);width:100%}
-  textarea{font-family:var(--mono);font-size:12px;min-height:90px;resize:vertical}
-  input[type=password]{font-family:var(--mono);letter-spacing:.09em}
-  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent;background:#fff}
-  input.dirty,select.dirty{border-color:var(--warn);background:#fffbf4}
-  .inp .icon{position:absolute;right:4px}
-  .inp.has-eye input{padding-right:28px}
+  input,select,textarea{font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);color:var(--ink);width:100%}
+  input[type=password],textarea,input.mono{font-family:var(--mono);font-size:12.5px}
+  input[type=password]{letter-spacing:.08em}
+  textarea{min-height:90px;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent;background:var(--panel)}
+  input.dirty,select.dirty{border-color:var(--warn);background:var(--warn-soft)}
+  .inp .icon{position:absolute;right:5px}
+  .inp.has-eye input{padding-right:30px}
+  .modes{display:flex;gap:4px;margin-left:12px}
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:14px 16px}
+  .tile{background:var(--panel-2);border:1px solid var(--line-2);border-radius:9px;padding:12px 13px}
+  .tile .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600}
+  .tile .val{font-family:var(--mono);font-size:19px;font-weight:500;letter-spacing:-.01em;margin-top:4px;color:var(--ink)}
+  .tile .val small{font-size:12px;color:var(--muted)}
+  .tile .sub{font-size:11px;color:var(--muted);margin-top:2px}
+  pre{font-family:var(--mono);font-size:11.5px;white-space:pre-wrap;color:var(--muted);background:var(--panel-2);border:1px solid var(--line-2);border-radius:9px;
+      padding:12px;margin:12px 0 0;max-height:220px;overflow:auto}
+  pre.logs{max-height:70vh;background:#0b1020;color:#d5dbe8;border-color:#0b1020;margin:0;line-height:1.55}
 
-  /* ----------------------------------------------------------- docker --- */
-  .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:13px;padding:15px}
-  .stat{background:#fbfbfd;border:1px solid var(--line);border-radius:9px;padding:12px 13px}
-  .stat .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
-  .stat .val{font-size:19px;font-weight:650;letter-spacing:-.02em;margin-top:3px}
-  .stat .sub{font-size:11px;color:var(--muted);font-family:var(--mono)}
-  .kv{padding:0 15px 15px;font-size:12.5px;color:var(--muted);line-height:1.6}
-  .kv b{color:var(--ink);font-weight:550}
-
-  /* --------------------------------------------------------- save bar --- */
-  .savebar{position:fixed;left:var(--rail);right:0;bottom:0;z-index:8;background:rgba(255,255,255,.92);
-           backdrop-filter:blur(8px);border-top:1px solid var(--line);
-           display:flex;align-items:center;gap:11px;padding:12px 34px}
-  .savebar[hidden]{display:none}
+  /* ------------------------------------------------- save bar, overlays --- */
+  .savebar{position:fixed;left:var(--rail);right:0;bottom:0;z-index:8;background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(10px);
+           border-top:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:12px 36px}
   .unsaved{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
   .unsaved::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--warn)}
-  .btn{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 15px;
-       font-size:13px;box-shadow:var(--shadow)}
-  .btn:hover:not(:disabled){border-color:var(--accent)}
-  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:550}
-  .btn.primary:hover{filter:brightness(1.07)}
-  .btn:disabled{opacity:.5;cursor:not-allowed}
   .savebar .right{margin-left:auto;display:flex;gap:9px}
-
-  pre{font-family:var(--mono);font-size:11px;white-space:pre-wrap;color:var(--muted);
-      background:#fbfbfd;border:1px solid var(--line);border-radius:9px;padding:11px;
-      margin:13px 0 0;max-height:190px;overflow:auto}
-  pre.logs{max-height:70vh;background:#0f1320;color:#d5dbe8;border-color:#0f1320;margin:0}
-  #toast{position:fixed;left:calc(var(--rail) + 34px);bottom:74px;z-index:10;background:var(--nav);
-         color:var(--nav-ink);border-radius:9px;padding:10px 15px;font-size:12.5px;display:none;
-         box-shadow:0 10px 30px rgba(20,26,42,.28);max-width:520px}
-  #toast.err{background:var(--err)} #toast.ok{background:#16603a}
-  #veil{position:fixed;inset:0;z-index:20;background:rgba(20,26,42,.75);backdrop-filter:blur(3px);
-        display:none;align-items:center;justify-content:center}
-  #veil.on{display:flex}
-  .veil-card{background:var(--panel);border-radius:12px;padding:22px 26px;text-align:center;
-             max-width:340px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+  #toast{position:fixed;left:calc(var(--rail) + 36px);bottom:80px;z-index:10;background:var(--ink);color:var(--bg);border-radius:9px;padding:10px 15px;
+         font-size:12.5px;display:none;box-shadow:var(--shadow-lg);max-width:520px}
+  #toast.err{background:var(--crit);color:#fff} #toast.ok{background:var(--ok);color:#fff}
+  .overlay{position:fixed;inset:0;z-index:20;background:rgba(10,15,25,.72);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center}
+  .overlay.on{display:flex}
+  .veil-card{background:var(--panel);border-radius:12px;padding:22px 26px;text-align:center;max-width:340px;box-shadow:var(--shadow-lg)}
   .veil-card h2{margin:0 0 6px;font-size:15px}
   .veil-card p{margin:0;color:var(--muted);font-size:12.5px}
   .bar{height:3px;border-radius:3px;background:var(--line);margin-top:14px;overflow:hidden}
   .bar i{display:block;height:100%;width:38%;background:var(--accent);animation:slide 1.1s ease-in-out infinite}
   @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}
+  .help{background:var(--panel);border-radius:12px;padding:20px 24px;min-width:320px;max-width:420px;box-shadow:var(--shadow-lg)}
+  .help h2{font-size:15px;margin:0 0 12px}
+  .help dl{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:0;font-size:13px;align-items:center}
+  .help dt{text-align:right} .help dd{margin:0;color:var(--muted)}
+  .skel{height:120px;border:1px dashed var(--line);border-radius:var(--r);position:relative;overflow:hidden;margin-bottom:16px}
+  .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--accent-soft),transparent);animation:sweep 1.3s infinite}
+  @keyframes sweep{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
 
-  @media (max-width:860px){
+  @media (max-width:900px){
     :root{--rail:0px}
     .app{flex-direction:column}
-    .rail{position:static;width:auto;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px}
+    .rail{position:static;width:auto;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 12px}
     .brand{padding:0;margin-right:auto}
-    .nav-group{margin:0;padding:0;display:flex;gap:5px}
-    .nav-label,.rail-note{display:none}
-    .nav-item.active::before{display:none}
-    .rail-foot{margin:0;padding:0}
-    .main{padding:20px 16px 96px}
+    .nav-label,.machine,.nav .key{display:none}
+    .nav{width:auto;padding:7px 10px}
+    .nav.active::before{display:none}
+    .rail-foot{margin:0;padding:0;border:0;flex-direction:row}
+    .main{padding-inline:16px;padding-block:20px 100px}
     .savebar{left:0;padding:11px 16px}
     #toast{left:16px;right:16px}
-    .fact .k{width:88px}
+    .services{grid-template-columns:1fr}
+    .svc{border-right:0}
   }
 </style>
 </head>
@@ -266,94 +292,83 @@
 <div class="app">
   <aside class="rail">
     <div class="brand">
-      <img class="logo" src="/icon.png" alt="" width="36" height="36">
-      <div>
-        <div class="brand-name">InfraPack</div>
-        <div class="brand-sub" id="verTag">local dev infra</div>
-      </div>
+      <img src="/icon.png" alt="" width="34" height="34">
+      <div><div class="brand-name">InfraPack</div><div class="brand-ver" id="verTag">local dev infra</div></div>
     </div>
-
-    <div class="nav-group">
-      <div class="nav-label">Workspace</div>
-      <button class="nav-item active" data-view="services">
-        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></svg>
-        Installed <span class="badge" id="runBadge">0</span>
-      </button>
-      <button class="nav-item" data-view="catalog">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>
-        Catalog
-      </button>
-      <button class="nav-item" data-view="settings">
-        <svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/></svg>
-        Settings <span class="badge" id="dirtyBadge" hidden></span>
-      </button>
-    </div>
-
-    <div class="nav-group">
-      <div class="nav-label">System</div>
-      <button class="nav-item" data-view="logs">
-        <svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h10M4 19h13"/></svg>
-        Logs
-      </button>
-      <button class="nav-item" data-view="docker">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg>
-        Docker <span class="badge" id="vmBadge"></span>
-      </button>
-    </div>
-
+    <div class="nav-label">Workspace</div>
+    <button class="nav active" data-view="services">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></svg>
+      Installed <span class="badge" id="runBadge">0</span><span class="key">1</span>
+    </button>
+    <button class="nav" data-view="catalog">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>
+      Catalog <span class="key">2</span>
+    </button>
+    <button class="nav" data-view="settings">
+      <svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/></svg>
+      Settings <span class="badge" id="dirtyBadge" hidden></span><span class="key">3</span>
+    </button>
+    <div class="nav-label">Machine</div>
+    <button class="nav" data-view="logs">
+      <svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h10M4 19h13"/></svg>
+      Logs <span class="key">4</span>
+    </button>
+    <button class="nav" data-view="docker">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg>
+      Docker <span class="badge warn" id="memBadge" hidden>memory</span><span class="key">5</span>
+    </button>
     <div class="rail-foot">
-      <button class="rail-btn" id="dockerBtn" hidden>
-        <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
-        Restart Docker
+      <div class="machine" id="machine"></div>
+      <div class="rail-row">
+        <button class="rail-btn" id="themeBtn" title="Switch theme">
+          <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9c0-.5 0-1-.1-1.4A5.5 5.5 0 0 1 13.4 3.1C13 3 12.5 3 12 3z"/></svg><span id="themeLabel">Theme</span>
+        </button>
+        <button class="rail-btn" id="helpBtn" title="Keyboard shortcuts (?)">
+          <svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>Keys
+        </button>
+      </div>
+      <button class="rail-btn" id="dockerBtn" hidden title="Restart Docker">
+        <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>Restart Docker
       </button>
-      <div class="rail-note">console always on · <b>techs only when you want them</b></div>
     </div>
   </aside>
 
   <main class="main">
-    <!-- ------------------------------------------------------- installed -->
     <section class="view" id="view-services">
       <div class="page-head">
-        <div>
-          <div class="crumb">InfraPack · Workspace</div>
-          <h1>Installed</h1>
-        </div>
-        <div class="head-actions" id="bulk">
+        <div><div class="eyebrow">Workspace</div><h1>Installed</h1></div>
+        <div class="actions" id="bulk">
           <button class="btn" data-all="up">Start all</button>
           <button class="btn" data-all="restart">Restart all</button>
           <button class="btn" data-all="down">Stop all</button>
         </div>
       </div>
-      <p class="lede">Everything you have installed, with its connection details. Switch a tech on when you need it
-        and off when you don't; stopped techs stay stopped across restarts, only the console comes back on its own.</p>
-      <div class="strip" id="strip"></div>
-      <div id="cards">
-        <div class="grid"><div class="card skel"></div><div class="card skel"></div><div class="card skel"></div></div>
-      </div>
+      <p class="lede">Everything you have installed, with its connection details. Switch a tech on when you need it and off
+        when you don't; stopped techs stay stopped across restarts, only the console comes back on its own.</p>
+      <div class="statusbar" id="strip"></div>
+      <div id="cards"><div class="skel"></div><div class="skel"></div></div>
     </section>
 
-    <!-- --------------------------------------------------------- catalog -->
     <section class="view" id="view-catalog" hidden>
-      <div class="crumb">InfraPack · Workspace</div>
+      <div class="eyebrow">Workspace</div>
       <h1>Catalog</h1>
       <p class="lede">Pick a tech and it installs with sensible defaults, a web UI where one exists, and ready-to-copy
         connection strings. Change ports now or later in Settings. Not in the list? Add any image as a custom tech.</p>
-      <input class="search" id="catSearch" placeholder="Search the catalog…" autocomplete="off" spellcheck="false">
+      <div class="search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="catSearch" placeholder="Search the catalog…" autocomplete="off" spellcheck="false"><kbd>/</kbd>
+      </div>
       <div class="tpl-grid" id="templates"></div>
-
       <div class="panel" id="installPanel" hidden>
         <div class="panel-head"><h2 id="formTitle"></h2><span class="tag" id="formTag">install</span></div>
         <div class="rows" id="addRows"></div>
-        <div class="rows" style="padding-top:0">
-          <div style="grid-column:1/-1;display:flex;gap:9px;align-items:center;flex-wrap:wrap">
-            <button class="btn primary" id="addBtn">Install</button>
-            <button class="btn" id="addResetBtn">Cancel</button>
-            <span class="note" id="addNote"></span>
-            <span class="note" style="margin-left:auto">Enter to install</span>
-          </div>
+        <div class="actions-row">
+          <button class="btn primary" id="addBtn">Install</button>
+          <button class="btn" id="addResetBtn">Cancel</button>
+          <span class="note" id="addNote"></span>
+          <span class="note" style="margin-left:auto"><kbd>Enter</kbd> installs</span>
         </div>
       </div>
-
       <div class="panel" id="customPanel" hidden>
         <div class="panel-head"><h2>Custom tech</h2>
           <span class="modes">
@@ -362,97 +377,72 @@
           </span>
           <span class="tag">any image</span></div>
         <div class="rows" id="customRows"></div>
-        <div class="rows" style="padding-top:0">
-          <div style="grid-column:1/-1;display:flex;gap:9px;align-items:center;flex-wrap:wrap">
-            <button class="btn primary" id="customBtn">Add &amp; start</button>
-            <button class="btn" id="previewBtn">Preview</button>
-            <button class="btn" id="customResetBtn">Cancel</button>
-            <span class="note" id="customNote"></span>
-            <span class="note" style="margin-left:auto">Every host port and image tag becomes a setting you can change later</span>
-          </div>
-          <p class="note" style="grid-column:1/-1;margin:4px 0 0">Would other people want this tech too? Once it runs,
-            <code>infrapack contribute &lt;name&gt;</code> packages it as a catalog entry, and
-            <a href="https://github.com/Mostly-Works-Studio/infrapack/blob/master/CONTRIBUTING.md" target="_blank" rel="noopener">CONTRIBUTING.md</a>
-            walks through the pull request. That is how the catalog grows.</p>
+        <div class="actions-row">
+          <button class="btn primary" id="customBtn">Add &amp; start</button>
+          <button class="btn" id="previewBtn">Preview</button>
+          <button class="btn" id="customResetBtn">Cancel</button>
+          <span class="note" id="customNote"></span>
+          <span class="note" style="margin-left:auto">Every host port and image tag becomes a setting you can change later</span>
         </div>
-        <pre id="previewOut" hidden style="margin:0 15px 15px"></pre>
+        <p class="note" style="padding:0 16px 14px;margin:0">Would other people want this tech too? Once it runs,
+          <code>infrapack contribute &lt;name&gt;</code> packages it as a catalog entry, and
+          <a href="https://github.com/Mostly-Works-Studio/infrapack/blob/master/CONTRIBUTING.md" target="_blank" rel="noopener">CONTRIBUTING.md</a>
+          walks through the pull request. That is how the catalog grows.</p>
+        <pre id="previewOut" hidden style="margin:0 16px 16px"></pre>
       </div>
       <pre id="addOut" hidden></pre>
     </section>
 
-    <!-- ------------------------------------------------------- settings -->
     <section class="view" id="view-settings" hidden>
-      <div class="crumb">InfraPack · Configuration</div>
+      <div class="eyebrow">Workspace</div>
       <h1>Settings</h1>
-      <p class="lede">Ports, credentials and image tags for everything installed. Edit and save: only the affected
-        services are recreated. Some techs read credentials only on first start; where InfraPack knows how (MySQL), it
-        applies the change to the running database too.</p>
+      <p class="lede">Ports, credentials and image tags for everything installed. Edit and save: only the affected services are
+        recreated. Some techs read credentials only on first start; where InfraPack knows how (MySQL), it applies the change to
+        the running database too.</p>
       <div id="groups"></div>
       <pre id="out" hidden></pre>
     </section>
 
-    <!-- ------------------------------------------------------------ logs -->
     <section class="view" id="view-logs" hidden>
       <div class="page-head">
-        <div>
-          <div class="crumb">InfraPack · System</div>
-          <h1>Logs</h1>
-        </div>
-        <div class="head-actions">
-          <select id="logSvc" style="width:auto"></select>
-          <button class="btn" id="logRefresh">Refresh</button>
-        </div>
+        <div><div class="eyebrow">Machine</div><h1>Logs</h1></div>
+        <div class="actions"><select id="logSvc" style="width:auto"></select><button class="btn" id="logRefresh">Refresh</button></div>
       </div>
-      <p class="lede">The last 300 lines from a container. For a live stream, run
-        <code>infrapack logs &lt;service&gt;</code> in a terminal.</p>
+      <p class="lede">The last 300 lines from a container. For a live stream, run <code>infrapack logs &lt;service&gt;</code> in a terminal.</p>
       <pre class="logs" id="logOut">pick a service</pre>
     </section>
 
-    <!-- --------------------------------------------------------- docker -->
     <section class="view" id="view-docker" hidden>
-      <div class="crumb">InfraPack · System</div>
+      <div class="eyebrow">Machine</div>
       <h1>Docker</h1>
-      <p class="lede">The Docker engine everything runs in: what it has, what your techs are using, and whether it is sized
-        for what you have installed.</p>
-      <div class="panel">
-        <div class="panel-head"><h2>Resources</h2><span class="tag" id="sampleTag">live</span></div>
-        <div class="stat-row" id="stats"></div>
-      </div>
+      <p class="lede">The Docker engine everything runs in: what it has, what your techs are using, and whether it is sized for
+        what you have installed.</p>
+      <div class="panel"><div class="panel-head"><h2>Resources</h2><span class="tag" id="sampleTag">live</span></div><div class="stat-row" id="stats"></div></div>
       <div class="panel">
         <div class="panel-head"><h2>Memory for what is installed</h2><span class="tag" id="memTag"></span></div>
         <div class="stat-row" id="memStats"></div>
         <div class="kv" id="memInfo"></div>
-        <div class="rows" style="padding-top:0" id="memActions" hidden>
-          <div style="grid-column:1/-1;display:flex;gap:9px;align-items:center;flex-wrap:wrap">
-            <button class="btn primary" id="memResizeBtn"></button>
-            <span class="note">Restarts Docker: running techs stop and stay stopped; the console comes back by itself.</span>
-          </div>
+        <div class="actions-row" id="memActions" hidden>
+          <button class="btn primary" id="memResizeBtn"></button>
+          <span class="note">Restarts Docker: running techs stop and stay stopped; the console comes back by itself.</span>
         </div>
       </div>
-      <div class="panel">
-        <div class="panel-head"><h2>Engine</h2></div>
-        <div class="kv" id="engineInfo"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><h2>Workspace</h2></div>
-        <div class="kv" id="wsInfo"></div>
-      </div>
+      <div class="panel"><div class="panel-head"><h2>Engine</h2></div><div class="kv" id="engineInfo"></div></div>
+      <div class="panel"><div class="panel-head"><h2>Workspace</h2></div><div class="kv" id="wsInfo"></div></div>
       <div class="panel">
         <div class="panel-head"><h2>Share this setup</h2><span class="tag">team</span></div>
         <div class="kv">Export everything installed here, with settings, as one file. Whoever imports it gets the same
           infrastructure: catalog techs are installed by name, custom ones travel with their definition.
           Passwords and tokens are masked unless you tick the box.</div>
-        <div class="rows" style="padding-top:0">
-          <div style="grid-column:1/-1;display:flex;gap:9px;align-items:center;flex-wrap:wrap">
-            <a class="btn primary" id="exportBtn" href="/api/export" download="infrapack-export.json">Export</a>
-            <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="exportSecrets" style="width:auto"> include secrets</label>
-            <span style="flex:1"></span>
-            <button class="btn" id="importBtn">Import a file…</button>
-            <input type="file" id="importFile" accept="application/json,.json" hidden>
-            <span class="note" id="importNote"></span>
-          </div>
+        <div class="actions-row">
+          <a class="btn primary" id="exportBtn" href="/api/export" download="infrapack-export.json">Export</a>
+          <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="exportSecrets" style="width:auto"> include secrets</label>
+          <span style="flex:1"></span>
+          <button class="btn" id="importBtn">Import a file…</button>
+          <input type="file" id="importFile" accept="application/json,.json" hidden>
+          <span class="note" id="importNote"></span>
         </div>
-        <pre id="importOut" hidden style="margin:0 15px 15px"></pre>
+        <pre id="importOut" hidden style="margin:0 16px 16px"></pre>
       </div>
     </section>
   </main>
@@ -460,19 +450,21 @@
 
 <div class="savebar" id="savebar" hidden>
   <span class="unsaved" id="dirtyNote"></span>
-  <div class="right">
-    <button class="btn" id="discardBtn">Discard</button>
-    <button class="btn primary" id="saveBtn">Save changes</button>
-  </div>
+  <div class="right"><button class="btn" id="discardBtn">Discard</button><button class="btn primary" id="saveBtn">Save changes</button></div>
 </div>
-
-<div id="veil"><div class="veil-card">
-  <h2 id="veilTitle">Restarting Docker…</h2>
-  <p id="veilText">The console will reconnect by itself.</p>
-  <div class="bar"><i></i></div>
+<div class="overlay" id="veil"><div class="veil-card"><h2 id="veilTitle">Restarting Docker…</h2><p id="veilText">The console will reconnect by itself.</p><div class="bar"><i></i></div></div></div>
+<div class="overlay" id="helpOverlay"><div class="help">
+  <h2>Keyboard</h2>
+  <dl>
+    <dt><kbd>1</kbd>–<kbd>5</kbd></dt><dd>Installed, Catalog, Settings, Logs, Docker</dd>
+    <dt><kbd>/</kbd></dt><dd>search the catalog</dd>
+    <dt><kbd>⌘S</kbd> / <kbd>Ctrl S</kbd></dt><dd>save settings</dd>
+    <dt><kbd>Enter</kbd></dt><dd>install the selected tech</dd>
+    <dt><kbd>Esc</kbd></dt><dd>discard changes, re-hide secrets, close this</dd>
+    <dt><kbd>?</kbd></dt><dd>this list</dd>
+  </dl>
 </div></div>
 <div id="toast"></div>
-
 <script>
 const I = {
   copy:'<svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
@@ -483,7 +475,8 @@ const I = {
   trash:'<svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>',
   plus:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
   ext:'<svg viewBox="0 0 24 24"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>',
-  logs:'<svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h10M4 19h13"/></svg>'
+  logs:'<svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h10M4 19h13"/></svg>',
+  more:'<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>'
 };
 
 let STATE = null, dirty = {}, polling = null, view = "services";
@@ -496,6 +489,21 @@ const fmtMem = mb => mb == null ? "–"
   : mb >= 1024 ? (mb / 1024).toFixed(mb >= 10240 ? 0 : 1) + " GB" : Math.round(mb) + " MB";
 const fmtCpu = c => c == null ? "–" : (c < 10 ? c.toFixed(2) : c.toFixed(1)) + "%";
 const allStacks = () => STATE ? STATE.stacks.map(s => s.name) : [];
+const gib = mb => mb == null ? "–" : (mb / 1024).toFixed(1) + " GiB";
+
+// ------------------------------------------------------------- theme -----
+function applyTheme(t){
+  if(t === "light" || t === "dark") document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+  $("#themeLabel").textContent = t === "dark" ? "Dark" : t === "light" ? "Light" : "System";
+}
+let themePref = "system";
+try{ themePref = localStorage.getItem("ip-theme") || "system"; }catch(e){}
+applyTheme(themePref);
+function cycleTheme(){
+  themePref = themePref === "system" ? "dark" : themePref === "dark" ? "light" : "system";
+  try{ localStorage.setItem("ip-theme", themePref); }catch(e){}
+  applyTheme(themePref);
+}
 
 function toast(msg, kind){
   const t = $("#toast");
@@ -518,26 +526,18 @@ async function load(){
   catch(e){ toast("cannot reach the console: " + e.message, "err"); }
 }
 
-const dotClass = s => s.state !== "running"
-  ? (s.state === "exited" ? "exited" : "")
-  : (s.health === "starting" ? "starting" : s.health === "unhealthy" ? "unhealthy" : "up");
-const stateText = s => s.state !== "running"
-  ? (s.state === "absent" ? "stopped" : s.state)
-  : (s.health && s.health !== "healthy" ? s.health : "running");
+const stateOf = s => s.state !== "running"
+  ? (s.state === "exited" ? ["crit", "exited"] : ["", "stopped"])
+  : (s.health === "starting" ? ["warn", "starting"] : s.health === "unhealthy" ? ["crit", "unhealthy"] : ["ok", "running"]);
 
 function factRow(card, i, f){
   const id = card.key + ":" + i, open = shown.has(id);
-  const long = String(f.value).length > 26;
+  const long = String(f.value).length > 30;
   const text = f.secret && !open ? "•".repeat(Math.min(14, String(f.value).length)) : f.value;
   const eye = (f.secret || long)
     ? `<button class="icon" data-act="eye" data-id="${id}" title="${open ? "Hide" : "Show full"}">${open ? I.eyeOff : I.eye}</button>` : "";
-  const copy = f.copy
-    ? `<button class="icon" data-act="copy" data-card="${card.key}" data-i="${i}" title="Copy">${I.copy}</button>` : "";
-  return `<div class="fact ${open ? "open" : ""}">
-    <span class="k">${esc(f.label)}</span>
-    <span class="v">${esc(text)}</span>
-    <span class="tools">${eye}${copy}</span>
-  </div>`;
+  const copy = f.copy ? `<button class="icon" data-act="copy" data-card="${card.key}" data-i="${i}" title="Copy">${I.copy}</button>` : "";
+  return `<div class="row"><span class="k">${esc(f.label)}</span><span class="v ${open ? "open" : ""}" title="${esc(f.value)}">${esc(text)}</span><span class="tools">${eye}${copy}</span></div>`;
 }
 
 // Each region re-renders only when its own inputs change, so the poll never
@@ -564,54 +564,50 @@ function render(){
 }
 
 function renderBadges(running){
-  if(!changed("badge", [running, STATE.services.length, STATE.version])) return;
+  if(!changed("badge", [running, STATE.services.length, STATE.version, STATE.memory && STATE.memory.tooSmall])) return;
   const badge = $("#runBadge");
   badge.textContent = `${running}/${STATE.services.length}`;
   badge.classList.toggle("live", running > 0);
   $("#verTag").textContent = "v" + STATE.version;
   $("#bulk").hidden = STATE.stacks.length === 0;
+  $("#memBadge").hidden = !(STATE.memory && STATE.memory.tooSmall);
 }
 
 function renderStrip(){
-  const u = STATE.usage, cap = STATE.docker && STATE.docker.memMB;
-  if(!changed("strip", [u, cap])) return;
+  const u = STATE.usage, cap = STATE.docker && STATE.docker.memMB, m = STATE.memory;
+  if(!changed("strip", [u, cap, m, STATE.stacks.length, STATE.services.length])) return;
   const pct = (u && cap) ? Math.min(100, (u.memMB / cap) * 100) : 0;
   const cls = pct > 85 ? "hot" : pct > 65 ? "warn" : "";
-  $("#strip").innerHTML = u && u.count
-    ? `<span class="meter"><i class="${cls}" style="width:${pct.toFixed(1)}%"></i></span>
-       <span class="pill on">${fmtMem(u.memMB)}</span>
-       <span class="arrow">of</span>
-       <span class="pill">${cap ? fmtMem(cap) : "–"}</span>
-       <span class="pill">${fmtCpu(u.cpu)} CPU</span>
-       <span class="strip-note">${u.count} container${u.count === 1 ? "" : "s"} running ·
-         <b>${STATE.docker ? STATE.docker.cpus : "?"}</b> vCPU</span>`
-    : `<span class="pill">idle</span>
-       <span class="strip-note">nothing running · toggle a service to start it</span>`;
+  const running = STATE.services.filter(s => s.up).length;
+  $("#strip").innerHTML = `
+    <div class="stat"><span class="k">Running</span><span class="v">${running}<small> / ${STATE.services.length} services</small></span></div>
+    <div class="stat"><span class="k">Memory in use</span><span class="v">${u && u.count ? fmtMem(u.memMB) : "0"}<small> of ${cap ? fmtMem(cap) : "–"}</small></span>
+      <span class="meter"><i class="${cls}" style="width:${pct.toFixed(1)}%"></i></span></div>
+    <div class="stat"><span class="k">CPU</span><span class="v">${u && u.count ? fmtCpu(u.cpu) : "idle"}</span></div>
+    ${m ? `<div class="stat"><span class="k">Installed needs</span><span class="v">~${gib(m.neededMB)}<small> · VM ${gib(m.vmMB)}</small></span></div>` : ""}
+    <span class="right">${STATE.docker ? esc(STATE.docker.engine) + " · " + STATE.docker.cpus + " vCPU" : ""}</span>`;
+  $("#machine").innerHTML = STATE.docker ? `<b>${esc(STATE.docker.engine)}</b><br>${u && u.count ? fmtMem(u.memMB) : "0"} of ${fmtMem(cap)} in use
+    <span class="m"><i class="${cls}" style="width:${pct.toFixed(1)}%"></i></span>` : "";
 }
 
-function cardHtml(s){
+function svcHtml(s){
   const busy = pending.has(s.key) || pending.has(s.stack);
-  return `<div class="card ${busy ? "busy" : ""}">
-    <div class="card-head">
-      <span class="dot ${dotClass(s)}"></span>
-      <div class="card-title">
-        <div class="name">${esc(s.name)}</div>
-        <div class="desc">${esc(s.desc)}</div>
-      </div>
+  const [cls, text] = stateOf(s);
+  return `<div class="svc">
+    <div class="svc-head">
+      <div style="min-width:0"><div class="name">${esc(s.name)}</div><div class="desc" title="${esc(s.desc)}">${esc(s.desc)}</div></div>
       <div class="ctl">
         <button class="icon" data-act="logs" data-svc="${s.key}" title="Logs" ${s.up ? "" : "disabled"}>${I.logs}</button>
-        <button class="icon" data-act="restart" data-svc="${s.key}" title="Restart"
-                ${s.up && !busy ? "" : "disabled"}>${I.restart}</button>
-        <button class="switch ${s.up ? "on" : ""}" data-act="toggle" data-svc="${s.key}"
-                role="switch" aria-checked="${s.up}" aria-label="${esc(s.name)}"
-                title="${s.up ? "Stop" : "Start"} ${esc(s.name)}" ${busy ? "disabled" : ""}></button>
+        <button class="icon" data-act="restart" data-svc="${s.key}" title="Restart" ${s.up && !busy ? "" : "disabled"}>${I.restart}</button>
+        <button class="switch ${s.up ? "on" : ""}" data-act="toggle" data-svc="${s.key}" role="switch" aria-checked="${s.up}"
+                aria-label="${esc(s.name)}" title="${s.up ? "Stop" : "Start"} ${esc(s.name)}" ${busy ? "disabled" : ""}></button>
       </div>
     </div>
     <div class="facts">${s.facts.map((f, i) => factRow(s, i, f)).join("")}</div>
-    <div class="card-foot">
+    <div class="svc-foot">
       ${s.link && s.up ? `<a class="open" href="${esc(s.link)}" target="_blank" rel="noopener">Open ${I.ext}</a>` : ""}
       ${s.usage ? `<span class="usage">${fmtCpu(s.usage.cpu)} · <b>${fmtMem(s.usage.memMB)}</b></span>` : ""}
-      <span class="state">${busy ? "working…" : esc(stateText(s))}</span>
+      <span class="chip ${cls}">${busy ? "working…" : esc(text)}</span>
     </div>
   </div>`;
 }
@@ -620,7 +616,7 @@ function renderCards(){
   if(!changed("cards", [STATE.services, STATE.stacks, [...pending], [...shown]])) return;
   if(!STATE.stacks.length){
     $("#cards").innerHTML = `<div class="empty">
-      <img src="/logo.png" alt="InfraPack" style="width:220px;max-width:70%;margin:0 auto 6px;display:block">
+      <img src="/logo.png" alt="InfraPack" style="width:200px;max-width:70%;margin:0 auto 6px;display:block">
       <h2>Nothing installed yet</h2>
       <p>Pick what this machine needs from the catalog: a database, a broker, a cache, a queue.
          InfraPack starts it with a web UI and connection strings ready to copy. Nothing runs until you choose it.</p>
@@ -633,33 +629,40 @@ function renderCards(){
     const svcs = STATE.services.filter(s => s.stack === st.name);
     const busy = pending.has(st.name);
     const up = svcs.filter(s => s.up).length;
-    return `<div class="stack-head">
+    const starting = svcs.some(s => s.up && s.health === "starting");
+    const chip = up === 0 ? ["", "stopped"] : starting ? ["warn", "starting"] : up < svcs.length ? ["warn", `${up} of ${svcs.length} running`] : ["ok", "running"];
+    return `<div class="stack ${busy ? "busy" : ""}">
+      <div class="stack-head">
         <span class="t">${esc(st.label)}</span>
-        ${st.custom ? `<span class="chip">custom</span>` : ""}
-        <span class="note">${up}/${svcs.length} running</span>
+        ${st.custom ? `<span class="chip accent">custom</span>` : ""}
+        <span class="chip ${chip[0]}">${busy ? "working…" : chip[1]}</span>
+        <span class="meta">${svcs.length} service${svcs.length === 1 ? "" : "s"}${st.memoryMB ? ` · ~${gib(st.memoryMB)}` : ""}</span>
         <span class="tools">
-          <button class="tiny" data-stack-act="${up ? "down" : "up"}" data-stack="${st.name}" ${busy ? "disabled" : ""}>
-            ${up ? "Stop" : "Start"} ${esc(st.label)}</button>
-          <button class="tiny" data-act="rm" data-stack="${st.name}" title="Uninstall" ${busy ? "disabled" : ""}>Uninstall</button>
+          <button class="tiny" data-stack-act="${up ? "down" : "up"}" data-stack="${st.name}" ${busy ? "disabled" : ""}>${up ? "Stop" : "Start"}</button>
+          <span class="menu-wrap">
+            <button class="icon" data-menu="${st.name}" title="More">${I.more}</button>
+            <div class="menu" id="menu-${st.name}">
+              <button data-stack-act="restart" data-stack="${st.name}">Restart</button>
+              <button class="danger" data-act="rm" data-stack="${st.name}">Uninstall…</button>
+            </div>
+          </span>
         </span>
       </div>
-      <div class="grid">${svcs.map(cardHtml).join("")}</div>`;
-  }).join("") + `<div class="grid" style="margin-top:14px"><button class="addcard" data-view="catalog">${I.plus} Install another tech</button></div>`;
+      <div class="services">${svcs.map(svcHtml).join("")}</div>
+    </div>`;
+  }).join("") + `<button class="addcard" data-view="catalog">${I.plus} Install another tech</button>`;
 }
 
 function renderSettings(){
   const host = $("#groups");
   if(editing(host)) return;
   if(!changed("settings", [STATE.fields, dirty, [...revealed]])) return;
-  if(!STATE.fields.length){ host.innerHTML = ""; return; }
+  if(!STATE.fields.length){ host.innerHTML = `<div class="empty"><h2>No settings yet</h2><p>Install a tech and its ports, credentials and image tags appear here.</p></div>`; return; }
   const groups = {};
   STATE.fields.forEach(f => (groups[f.group] = groups[f.group] || []).push(f));
   host.innerHTML = Object.entries(groups).map(([g, fs]) => `
     <div class="panel">
-      <div class="panel-head">
-        <h2>${esc(g)}</h2>
-        <span class="tag">${esc(fs[0].stack)}</span>
-      </div>
+      <div class="panel-head"><h2>${esc(g)}</h2><span class="tag">${esc(fs[0].stack)}</span></div>
       <div class="rows">
         ${fs.map(f => {
           const secret = f.type === "secret", show = revealed.has(f.key);
@@ -667,17 +670,18 @@ function renderSettings(){
           const cls = dirty[f.key] !== undefined ? "dirty" : "";
           let control;
           if(f.type === "choice"){
-            control = `<select data-key="${f.key}" class="${cls}">${f.choices.map(c =>
+            control = `<select data-key="${f.key}" id="f-${f.key}" class="${cls}">${f.choices.map(c =>
               `<option value="${esc(c)}" ${c === val ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>`;
           } else {
-            control = `<input data-key="${f.key}" value="${esc(val)}"
-                     type="${secret && !show ? "password" : "text"}" class="${cls}"
+            const mono = (f.type === "port" || f.type === "int" || secret) ? "mono" : "";
+            control = `<input data-key="${f.key}" id="f-${f.key}" value="${esc(val)}"
+                     type="${secret && !show ? "password" : "text"}" class="${cls} ${mono}"
                      inputmode="${f.type === "port" || f.type === "int" ? "numeric" : "text"}"
                      autocomplete="off" spellcheck="false">
               ${secret ? `<button class="icon" data-act="reveal" data-key="${f.key}" type="button"
                           title="${show ? "Hide" : "Show"}">${show ? I.eyeOff : I.eye}</button>` : ""}`;
           }
-          return `<label>${esc(f.label)}${f.note ? ` <span class="hint">· ${esc(f.note)}</span>` : ""}
+          return `<label for="f-${f.key}">${esc(f.label)}${f.note ? ` <span class="hint">· ${esc(f.note)}</span>` : ""}
             <span class="inp ${secret ? "has-eye" : ""}">${control}</span>
           </label>`;
         }).join("")}
@@ -710,26 +714,16 @@ function renderDocker(running){
   if(!changed("docker", [vm, u, running, STATE.agentStatus, STATE.dockerControl, STATE.home, STATE.hostOS])) return;
   const cap = vm && vm.memMB;
   const pct = (u && cap) ? Math.min(100, (u.memMB / cap) * 100) : 0;
-  $("#vmBadge").textContent = vm ? vm.memGiB + "G" : "–";
   $("#stats").innerHTML = `
-    <div class="stat"><div class="lbl">Memory</div>
-      <div class="val">${vm ? vm.memGiB + " GiB" : "–"}</div>
-      <div class="sub">${u ? fmtMem(u.memMB) + " in use" : "idle"}</div></div>
-    <div class="stat"><div class="lbl">CPUs</div>
-      <div class="val">${vm ? vm.cpus : "–"}</div>
-      <div class="sub">${u ? fmtCpu(u.cpu) + " in use" : "idle"}</div></div>
-    <div class="stat"><div class="lbl">Containers</div>
-      <div class="val">${running}<span style="font-size:13px;color:var(--muted)"> / ${STATE.services.length}</span></div>
-      <div class="sub">plus the console</div></div>
-    <div class="stat"><div class="lbl">Headroom</div>
-      <div class="val">${vm && u ? fmtMem(Math.max(0, vm.memMB - u.memMB)) : "–"}</div>
-      <div class="sub">${pct ? pct.toFixed(0) + "% used" : "—"}</div></div>`;
+    <div class="tile"><div class="lbl">Memory</div><div class="val">${vm ? vm.memGiB + "<small> GiB</small>" : "–"}</div><div class="sub">${u ? fmtMem(u.memMB) + " in use" : "idle"}</div></div>
+    <div class="tile"><div class="lbl">CPUs</div><div class="val">${vm ? vm.cpus : "–"}</div><div class="sub">${u ? fmtCpu(u.cpu) + " in use" : "idle"}</div></div>
+    <div class="tile"><div class="lbl">Containers</div><div class="val">${running}<small> / ${STATE.services.length}</small></div><div class="sub">plus the console</div></div>
+    <div class="tile"><div class="lbl">Headroom</div><div class="val">${vm && u ? fmtMem(Math.max(0, vm.memMB - u.memMB)) : "–"}</div><div class="sub">${pct ? pct.toFixed(0) + "% used" : "—"}</div></div>`;
 
   const ag = STATE.agentStatus;
   const mac = STATE.hostOS === "Darwin";
-  $("#engineInfo").innerHTML = `Engine: <b>${esc(vm ? vm.engine : "?")}</b> on <b>${esc(STATE.hostOS)}</b>.<br>` + (STATE.dockerControl
-    ? `The host agent is installed, so the console can restart Docker Desktop with <b>Restart Docker</b> in the sidebar.
-       Running services stop and stay stopped; the console comes back on its own.
+  $("#engineInfo").innerHTML = `Engine: <b>${esc(vm ? vm.engine : "?")}</b> on <b>${esc(STATE.hostOS)}</b>${vm && vm.platform ? ` · ${esc(vm.platform)}` : ""}.<br>` + (STATE.dockerControl
+    ? `The console can restart Docker Desktop with <b>Restart Docker</b> in the sidebar. Running techs stop and stay stopped; the console comes back on its own.
        ${ag ? `<br>Last action: <b>${esc(ag.message)}</b> (${esc(ag.at.replace("T", " "))})` : ""}`
     : mac ? `Run <code>infrapack agent install</code> to let the console restart Docker Desktop from here.`
           : `Restart the engine from the host when needed (<code>systemctl restart docker</code>).`);
@@ -740,15 +734,15 @@ function renderDocker(running){
   renderMemory();
 }
 
-const gib = mb => mb == null ? "–" : (mb / 1024).toFixed(1) + " GiB";
 function renderMemory(){
   const m = STATE.memory; if(!m) return;
-  $("#memTag").textContent = m.dynamic ? "dynamic" : m.tooSmall ? "too small" : "ok";
-  $("#memTag").style.color = m.tooSmall ? "var(--warn)" : "";
+  const tag = $("#memTag");
+  tag.textContent = m.dynamic ? "dynamic" : m.tooSmall ? "too small" : "sized right";
+  tag.className = "tag " + (m.tooSmall ? "warn" : m.dynamic ? "" : "ok");
   $("#memStats").innerHTML = `
-    <div class="stat"><div class="lbl">Docker VM cap</div><div class="val">${gib(m.vmMB)}</div><div class="sub">${m.hostMB ? "of " + gib(m.hostMB) + " host RAM" : ""}</div></div>
-    <div class="stat"><div class="lbl">Installed techs need</div><div class="val">~${gib(m.neededMB)}</div><div class="sub">${STATE.stacks.length} tech${STATE.stacks.length === 1 ? "" : "s"} + console, all running</div></div>
-    <div class="stat"><div class="lbl">Recommended</div><div class="val">${gib(m.recommendedMB)}</div><div class="sub">×1.5 headroom, 2 GiB floor</div></div>`;
+    <div class="tile"><div class="lbl">Docker VM cap</div><div class="val">${gib(m.vmMB)}</div><div class="sub">${m.hostMB ? "of " + gib(m.hostMB) + " host RAM" : ""}</div></div>
+    <div class="tile"><div class="lbl">Installed techs need</div><div class="val">~${gib(m.neededMB)}</div><div class="sub">${STATE.stacks.length} tech${STATE.stacks.length === 1 ? "" : "s"} + console, all running</div></div>
+    <div class="tile"><div class="lbl">Recommended</div><div class="val">${gib(m.recommendedMB)}</div><div class="sub">×1.5 headroom, 2 GiB floor</div></div>`;
   let info;
   if(m.dynamic) info = "OrbStack grows and shrinks the VM by itself, so there is nothing to size.";
   else if(m.tooSmall) info = `Everything installed would not fit if it all ran at once. Resize the VM to <b>${gib(m.recommendedMB)}</b>` +
@@ -784,7 +778,7 @@ function tplHtml(c){
   return `<button class="tpl ${picked === c.name ? "sel" : ""} ${c.installed ? "installed" : ""}" data-tpl="${c.name}" ${c.installed ? "disabled" : ""}>
       <span class="t">${esc(c.label)} ${c.installed ? `<span class="chip ok">installed</span>` : ""}${emu ? `<span class="chip warn" title="${esc(c.platform)} image only — runs emulated on this ${esc(host)} machine, slower">emulated</span>` : ""}</span>
       <span class="b">${esc(c.blurb)}</span>
-      <span class="i">${Object.values(c.ports).map(p => ":" + p).join(" · ")}${c.uiLabel ? " · " + esc(c.uiLabel) : ""}${c.memoryMB ? ` · ~${gib(c.memoryMB)}` : ""}</span>
+      <span class="i"><span>${Object.values(c.ports).map(p => ":" + p).join(" · ")}</span>${c.uiLabel ? `<span>${esc(c.uiLabel)}</span>` : ""}${c.memoryMB ? `<span class="mem">~${gib(c.memoryMB)}</span>` : ""}</span>
     </button>`;
 }
 
@@ -795,13 +789,13 @@ function renderCatalog(){
   list.forEach(c => (groups[c.category] = groups[c.category] || []).push(c));
   const order = Object.keys(CATEGORIES).filter(k => groups[k]).concat(Object.keys(groups).filter(k => !CATEGORIES[k]));
   $("#templates").innerHTML = order.map(k => `
-    <h3 style="grid-column:1/-1;margin:8px 0 0">${esc(CATEGORIES[k] || k)} <span class="n">${groups[k].length}</span></h3>
+    <h3 class="sec" style="grid-column:1/-1;margin:10px 0 0">${esc(CATEGORIES[k] || k)} <span class="n">${groups[k].length}</span></h3>
     ${groups[k].map(tplHtml).join("")}`).join("") +
-    `<h3 style="grid-column:1/-1;margin:8px 0 0">Custom</h3>
+    `<h3 class="sec" style="grid-column:1/-1;margin:10px 0 0">Custom</h3>
      <button class="tpl ${custom ? "sel" : ""}" data-tpl="">
        <span class="t">Custom</span>
-       <span class="b">Any image — set ports, volumes, env and an optional UI yourself.</span>
-       <span class="i">you choose</span></button>` +
+       <span class="b">Any image — set ports, volumes, env and an optional UI yourself, or paste a compose file.</span>
+       <span class="i"><span>you choose</span></span></button>` +
     (list.length || !q ? "" : `<p class="note" style="grid-column:1/-1">Nothing in the catalog matches "${esc(catQuery)}" — define it as a custom tech.</p>`);
 
   const tpl = CATALOG.find(c => c.name === picked);
@@ -810,19 +804,19 @@ function renderCatalog(){
   if(tpl){
     $("#formTitle").textContent = "Install " + tpl.label;
     $("#addRows").innerHTML = Object.entries(tpl.ports).map(([k, v]) => `
-      <label>${esc(portLabel(k))}
-        <span class="inp"><input data-form="${k}" value="${esc(form[k] ?? v)}" inputmode="numeric" autocomplete="off"></span>
-      </label>`).join("") + `<label style="grid-column:1/-1;justify-content:end" class="note">
+      <label for="p-${k}">${esc(portLabel(k))}
+        <span class="inp"><input id="p-${k}" class="mono" data-form="${k}" value="${esc(form[k] ?? v)}" inputmode="numeric" autocomplete="off"></span>
+      </label>`).join("") + `<label class="wide note" style="justify-content:end">
         Services: ${tpl.services.map(s => `<code>${esc(s)}</code>`).join(" ")} · everything else can be changed in Settings after installing.</label>`;
   }
   if(custom){
     const rows = customMode === "paste" ? PASTE_ROWS : FORM_ROWS;
     document.querySelectorAll(".mode").forEach(b => b.classList.toggle("active", b.dataset.mode === customMode));
     $("#customRows").innerHTML = rows.map(([k, label, ph, req, wide, ta]) => `
-      <label ${wide ? 'style="grid-column:1/-1"' : ""}>${esc(label)}${req ? "" : " <span class='hint'>· optional</span>"}
+      <label for="c-${k}" class="${wide ? "wide" : ""}">${esc(label)}${req ? "" : " <span class='hint'>· optional</span>"}
         <span class="inp">${ta
-          ? `<textarea data-form="${k}" placeholder="${esc(ph)}" spellcheck="false" ${k === "compose" ? 'style="min-height:220px"' : ""}>${esc(form[k] ?? "")}</textarea>`
-          : `<input data-form="${k}" value="${esc(form[k] ?? "")}" placeholder="${esc(ph)}" autocomplete="off" spellcheck="false">`}
+          ? `<textarea id="c-${k}" data-form="${k}" placeholder="${esc(ph)}" spellcheck="false" ${k === "compose" ? 'style="min-height:220px"' : ""}>${esc(form[k] ?? "")}</textarea>`
+          : `<input id="c-${k}" data-form="${k}" value="${esc(form[k] ?? "")}" placeholder="${esc(ph)}" autocomplete="off" spellcheck="false">`}
         </span>
       </label>`).join("");
     $("#previewOut").hidden = true;
@@ -936,12 +930,17 @@ function updateDirty(){
   b.hidden = n === 0; b.textContent = n; b.classList.toggle("live", n > 0);
 }
 
+const VIEWS = ["services","catalog","settings","logs","docker"];
 function setView(next){
   view = next;
-  document.querySelectorAll(".nav-item").forEach(el => el.classList.toggle("active", el.dataset.view === next));
-  ["services","catalog","settings","logs","docker"].forEach(v => $("#view-" + v).hidden = v !== next);
+  document.querySelectorAll(".nav").forEach(el => el.classList.toggle("active", el.dataset.view === next));
+  VIEWS.forEach(v => $("#view-" + v).hidden = v !== next);
+  try{ history.replaceState(null, "", next === "services" ? location.pathname : "#" + next); }catch(e){}
+  closeMenus();
   if(next === "catalog") $("#catSearch").focus();
 }
+function closeMenus(){ document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open")); }
+function toggleHelp(force){ const o = $("#helpOverlay"); o.classList.toggle("on", force === undefined ? !o.classList.contains("on") : force); }
 
 async function copyText(btn, text){
   try{ await navigator.clipboard.writeText(text); }
@@ -984,7 +983,7 @@ async function save(){
       return;
     }
     dirty = {};
-    toast(r.ok ? "saved and applied" : "saved, but applying failed", r.ok ? "ok" : "err");
+    toast(r.ok ? "Saved and applied" : "Saved, but applying failed", r.ok ? "ok" : "err");
     if(!r.ok) showOut(r.output);
   }catch(e){ toast(e.message, "err"); }
   finally{ btn.disabled = false; btn.textContent = "Save changes"; await load(); startPoll(); }
@@ -995,8 +994,7 @@ async function restartDocker(){
     "• Running services stop, and stay stopped until you toggle them back on\n" +
     "• The console reconnects on its own in about a minute");
   if(!ok) return;
-  stopPoll();
-  $("#veil").classList.add("on");
+  stopPoll(); $("#veil").classList.add("on"); $("#veilTitle").textContent = "Restarting Docker…";
   try{ await api("/api/docker", {action:"restart"}); }
   catch(e){ /* the engine drops our connection — expected */ }
   waitForConsole();
@@ -1028,6 +1026,12 @@ function showOut(text){
 }
 
 document.addEventListener("click", e => {
+  const menuBtn = e.target.closest("[data-menu]");
+  if(menuBtn){ const m = $("#menu-" + menuBtn.dataset.menu); const open = m.classList.contains("open"); closeMenus(); if(!open) m.classList.add("open"); return; }
+  if(!e.target.closest(".menu")) closeMenus();
+  if(e.target.id === "helpOverlay") return toggleHelp(false);
+  if(e.target.closest("#helpBtn")) return toggleHelp();
+  if(e.target.closest("#themeBtn")) return cycleTheme();
   const nav = e.target.closest("[data-view]");
   if(nav) return setView(nav.dataset.view);
   const tpl = e.target.closest("[data-tpl]");
@@ -1036,8 +1040,8 @@ document.addEventListener("click", e => {
     if(tpl.dataset.tpl){ picked = tpl.dataset.tpl; custom = null; }
     else { picked = null; custom = true; }
     renderCatalog();
-    const first = document.querySelector("#installPanel:not([hidden]) input, #customPanel:not([hidden]) input");
-    if(first) first.focus();
+    const panel = document.querySelector("#installPanel:not([hidden]), #customPanel:not([hidden])");
+    if(panel){ panel.scrollIntoView({behavior:"smooth", block:"nearest"}); const first = panel.querySelector("input"); if(first) first.focus(); }
     return;
   }
   if(e.target.closest("#addBtn")) return installPicked();
@@ -1051,7 +1055,7 @@ document.addEventListener("click", e => {
   const all = e.target.closest("[data-all]");
   if(all) return act(all.dataset.all, allStacks());
   const sa = e.target.closest("[data-stack-act]");
-  if(sa) return act(sa.dataset.stackAct, [sa.dataset.stack]);
+  if(sa){ closeMenus(); return act(sa.dataset.stackAct, [sa.dataset.stack]); }
   const btn = e.target.closest("[data-act]");
   if(btn){
     const a = btn.dataset.act;
@@ -1061,7 +1065,7 @@ document.addEventListener("click", e => {
     }
     if(a === "restart") return service("restart", btn.dataset.svc);
     if(a === "logs") return showLogs(btn.dataset.svc);
-    if(a === "rm") return removeStack(btn.dataset.stack);
+    if(a === "rm"){ closeMenus(); return removeStack(btn.dataset.stack); }
     if(a === "eye"){
       shown.has(btn.dataset.id) ? shown.delete(btn.dataset.id) : shown.add(btn.dataset.id);
       return render();
@@ -1104,7 +1108,7 @@ document.addEventListener("change", e => {
       try{
         const r = await api("/api/import", {data: text});
         $("#importOut").hidden = false; $("#importOut").textContent = r.output;
-        toast(r.ok ? "imported" : "import failed", r.ok ? "ok" : "err");
+        toast(r.ok ? "Imported" : "Import failed", r.ok ? "ok" : "err");
       }catch(err){ toast(err.message, "err"); }
       finally{ $("#importNote").textContent = ""; e.target.value = ""; await loadCatalog(); await load(); startPoll(); }
     });
@@ -1113,6 +1117,12 @@ document.addEventListener("change", e => {
 
 document.addEventListener("keydown", e => {
   const mod = e.metaKey || e.ctrlKey;
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+  if(!mod && !e.altKey && !typing){
+    if(e.key >= "1" && e.key <= "5"){ e.preventDefault(); return setView(VIEWS[+e.key - 1]); }
+    if(e.key === "/"){ e.preventDefault(); setView("catalog"); return $("#catSearch").select(); }
+    if(e.key === "?"){ e.preventDefault(); return toggleHelp(); }
+  }
   if(mod && e.key.toLowerCase() === "s"){
     if(Object.keys(dirty).length){ e.preventDefault(); save(); }
     return;
@@ -1120,6 +1130,9 @@ document.addEventListener("keydown", e => {
   if(e.key === "Enter" && e.target.closest("#addRows")){ e.preventDefault(); installPicked(); return; }
   if(e.key === "Enter" && e.target.closest("#customRows") && e.target.tagName !== "TEXTAREA"){ e.preventDefault(); addCustom(); return; }
   if(e.key === "Escape"){
+    closeMenus();
+    if($("#helpOverlay").classList.contains("on")) return toggleHelp(false);
+    if(typing && e.target.id === "catSearch"){ e.target.value = ""; catQuery = ""; renderCatalog(); return e.target.blur(); }
     if(view === "settings" && Object.keys(dirty).length){
       dirty = {}; revealed.clear(); render(); toast("changes discarded");
     } else if(view === "catalog"){
@@ -1133,7 +1146,10 @@ document.addEventListener("keydown", e => {
 function startPoll(){ stopPoll(); polling = setInterval(load, 4000); }
 function stopPoll(){ if(polling) clearInterval(polling); polling = null; }
 
-load().then(() => { startPoll(); if(STATE && !STATE.stacks.length) setView("catalog"); });
+const wanted = location.hash.slice(1);
+if(VIEWS.includes(wanted)) setView(wanted);
+window.addEventListener("hashchange", () => { const v = location.hash.slice(1); if(VIEWS.includes(v) && v !== view) setView(v); });
+load().then(() => { startPoll(); if(STATE && !STATE.stacks.length && !VIEWS.includes(wanted)) setView("catalog"); });
 loadCatalog();
 document.addEventListener("visibilitychange", () => document.hidden ? stopPoll() : (load(), startPoll()));
 </script>
