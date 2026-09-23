@@ -454,11 +454,12 @@ cmd_init() {
   fi
   [[ ${#techs[@]} -gt 0 ]] || die "nothing is running — name the techs: infrapack init postgres redis"
   {
-    echo "# InfraPack — local infrastructure this project needs."
-    echo "# A new joiner runs 'infrapack up' here and gets exactly this."
+    echo "# InfraPack — the local infrastructure this project needs."
+    echo "# Anyone with InfraPack runs 'infrapack up' in this repo and gets exactly this;"
+    echo "# techs that are not installed yet come from the catalog (it asks first)."
     echo "techs:"
     for stack in "${techs[@]}"; do echo "  - $stack"; done
-    echo "# settings:                 # optional, applied when a tech is first installed"
+    echo "# settings:                   # optional; applied when a tech is first installed here"
     echo "#   POSTGRES_DATABASE: shop"
   } > "$file"
   ok "wrote $file (${techs[*]})"
@@ -977,9 +978,8 @@ cmd_console() {
       if [[ "$CONSOLE_PORT" == 80 ]]; then
         printf '  also   http://infrapack.localhost   (Chrome, Firefox, Edge resolve *.localhost by themselves)\n'
       else
-        printf '  never type it again: %sinfrapack app install%s puts an InfraPack app in Spotlight / the Dock (any browser, incl. Arc)\n' "$B" "$N"
-        printf '  or open it once and use %sAdd to Dock%s (Safari) / %sInstall app%s (Chrome, Edge)\n' "$B" "$N" "$B" "$N"
-        printf '  %sinfrapack console alias%s   puts it on port 80 (http://localhost) if that port is free here\n' "$B" "$N"
+        printf '  the %sInfraPack%s app (Spotlight, Launchpad, Dock) opens it in its own window; the menu bar item toggles techs\n' "$B" "$N"
+        printf '  %sinfrapack console port N%s moves it · %sinfrapack console alias%s puts it on port 80 when that port is free\n' "$B" "$N" "$B" "$N"
       fi
       printf '  %sinfrapack open%s            opens it from any terminal\n' "$B" "$N" ;;
     alias) cmd_console port 80 ;;
@@ -1197,6 +1197,10 @@ first_run_extras() {
     case "$OS" in Darwin|Linux) cmd_app install >/dev/null 2>&1 && touch "$INFRAPACK_HOME/.app-installed" \
       && ok "added an InfraPack launcher app ($( [[ "$OS" == Darwin ]] && echo 'Spotlight / Launchpad' || echo 'app menu' )) — it opens the console" ;; esac
   fi
+  # the launchd helper lets the console restart / resize Docker Desktop
+  if [[ "$OS" == Darwin && ! -e "$INFRAPACK_HOME/installed" && ! -e "$INFRAPACK_HOME/.agent-declined" ]] && [[ "$(docker_engine)" == *Desktop* ]]; then
+    cmd_agent install >/dev/null 2>&1 && ok "the console can restart and resize Docker Desktop (infrapack agent uninstall turns that off)"
+  fi
   if [[ "$OS" == Darwin && ! -e "$INFRAPACK_HOME/.menubar-installed" ]] && command -v swiftc >/dev/null; then
     touch "$INFRAPACK_HOME/.menubar-installed"
     info "building the menu bar app in the background (toggle techs from the top bar); 'infrapack menubar uninstall' removes it"
@@ -1274,6 +1278,10 @@ first_run_extras() {
         ok "added an InfraPack launcher app ($( [[ "$OS" == Darwin ]] && echo 'Spotlight, Launchpad, Dock' || echo 'app menu; right-click for quick actions' )) — it opens the console"
       fi ;;
     esac
+  fi
+  # the launchd helper lets the console restart / resize Docker Desktop
+  if [[ "$OS" == Darwin && ! -e "$INFRAPACK_HOME/installed" && ! -e "$INFRAPACK_HOME/.agent-declined" ]] && [[ "$(docker_engine)" == *Desktop* ]]; then
+    cmd_agent install >/dev/null 2>&1 && ok "the console can restart and resize Docker Desktop (infrapack agent uninstall turns that off)"
   fi
   if [[ "$OS" == Darwin && ! -e "$INFRAPACK_HOME/.menubar-installed" ]] && command -v swiftc >/dev/null; then
     printf 'pending\n' > "$INFRAPACK_HOME/.menubar-installed"
@@ -1519,8 +1527,8 @@ EOF
       ok "host agent installed — the console can now restart Docker Desktop" ;;
     uninstall)
       launchctl bootout "gui/$UID/$AGENT_LABEL" >/dev/null 2>&1 || true
-      rm -f "$plist" "$INFRAPACK_HOME/installed"
-      ok "host agent removed" ;;
+      rm -f "$plist" "$INFRAPACK_HOME/installed"; touch "$INFRAPACK_HOME/.agent-declined"
+      ok "host agent removed (it will not be re-created automatically)" ;;
     status)
       if [[ -f "$plist" ]] && launchctl print "gui/$UID/$AGENT_LABEL" >/dev/null 2>&1; then
         ok "host agent is loaded"
@@ -1555,53 +1563,57 @@ stack_command() {
 
 usage() {
   cat <<EOF
-${B}InfraPack${N} $VERSION — local dev infrastructure, one command
+${B}InfraPack${N} $VERSION — local development infrastructure, one command
 
-${B}Usage${N}  infrapack <command> [args] [--no-ui]
+${B}Usage${N}  infrapack <command> [args]
 
 ${B}Everyday${N}
-  up [stack...]        start installed techs (default: all) and the console
-  down [stack...]      stop (data kept); no args = all techs, "all" = console too
-  restart [stack...]   stop + start
-  status               what is running, health, ports
-  urls                 connection strings and UI links
-  logs [service]       tail logs
-  open                 open the web console
-  console              where the console is, and how to reach it without typing
-  app [un]install      launcher app (Spotlight / Dock; Linux app menu with quick actions) — created automatically
-  menubar [un]install  macOS menu bar: toggle techs, open their UIs — created automatically
-  menubar install      macOS menu bar: toggle techs and open their UIs from the top bar
+  up [tech...]         start techs (default: every installed one) and the console
+  down [tech...]       stop them, keeping data (no args: all techs; "all": the console too)
+  restart [tech...]    stop, then start
+  status               what is running, with health, ports and which project uses what
+  urls                 connection strings and UI links for what is running
+  logs [service]       follow logs
+  open                 open the console
 
 ${B}Techs${N}
-  catalog              what can be installed
-  install <name>       add a tech from the catalog   ${DIM}infrapack install redis REDIS_PORT=6380${N}
-  uninstall <name>     remove it (--purge deletes its data too)
-  add <name> ...       define a custom tech from any image or a compose file
+  catalog              everything that can be installed, with ports and memory footprint
+  install <name>       add a tech from the catalog and start it   ${DIM}infrapack install redis REDIS_PORT=6380${N}
+  uninstall <name>     remove it; add --purge to delete its data as well
+  add <name> ...       define a custom tech from any image, or import a compose file
                        ${DIM}infrapack add mq --image nats:2-alpine --port 4222 --volume /data${N}
-                       ${DIM}infrapack add app --compose ./docker-compose.yml${N}
-  <stack> <command>    tech-specific helpers        ${DIM}infrapack kafka topics · infrapack mysql shell${N}
-  contribute <name>    package a custom tech as a catalog entry to open a PR with
+                       ${DIM}infrapack add shop --compose ./docker-compose.yml${N}
+  <tech> <command>     helpers a tech ships                       ${DIM}infrapack kafka topics · infrapack mysql shell${N}
+  contribute <name>    package a custom tech as a catalog entry, ready for a pull request
 
-${B}Sharing${N}
-  init [tech...]       write infrapack.yaml for this repo (default: what is running)
-                       ${DIM}then 'infrapack up' inside the repo starts exactly those${N}
+${B}Projects & teams${N}
+  init [tech...]       write infrapack.yaml for this repo (default: what is running now);
+                       'infrapack up' inside the repo then starts exactly those
   export [file]        one JSON file with every installed tech and its settings
-  import <file|url>    recreate that on this machine   ${DIM}infrapack import team.json${N}
+  import <file|url>    recreate it on another machine              ${DIM}infrapack import team.json${N}
 
 ${B}Settings${N}
   config               show settings (secrets masked)
   config set K=V...    change settings and apply them
-  reset [stack...]     stop and DELETE the data volumes
-  pull [stack...]      refresh images
+  reset [tech...]      stop and DELETE the data volumes
+  pull [tech...]       refresh images
 
-${B}System${N}
-  doctor               check Docker, ports, the console, VM memory
+${B}Machine${N}
+  doctor               check Docker, ports, memory and the console
   docker memory [auto|N]  size the Docker VM for the installed techs (restarts Docker)
+  console              where the console is; "console port N" moves it
+  app, menubar         the InfraPack app and menu bar item (created on first run; "uninstall" removes them)
+  agent <sub>          macOS helper that lets the console restart or resize Docker Desktop
+  exec <service> [cmd] a shell inside a container
   update               update InfraPack itself
-  agent <sub>          install|uninstall|status — lets the console restart Docker Desktop (macOS)
-  exec <service> [cmd] shell into a container
-  rebuild              rebuild the console image from source (developers)
   version
+
+${B}Flags${N}
+  --no-ui              start or stop core services only, without their web UIs
+  -y, --yes            do not ask before installing what a manifest needs
+  --with-secrets       include passwords and tokens in an export
+  --force              import over already-installed techs, or overwrite infrapack.yaml
+  --dry-run            show what "add" or "docker memory" would do
 
 Workspace: $INFRAPACK_HOME   Console: $(console_url 2>/dev/null || echo "http://localhost:${CONSOLE_PORT:-1717}")
 EOF

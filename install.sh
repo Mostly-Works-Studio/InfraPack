@@ -120,4 +120,4 @@ echo
 printf '%sNext%s\n' "$B" "$N"
 printf '  infrapack catalog          # what can be installed\n'
 printf '  infrapack install postgres # add one and start it\n'
-printf '  infrapack open             # the web console\n'
+printf '  infrapack open             # the console (also: the InfraPack app in Spotlight / your app menu)\n'

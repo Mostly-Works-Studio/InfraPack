@@ -28,7 +28,9 @@ class Infrapack < Formula
       Then:
         infrapack catalog            # what can be installed
         infrapack install postgres   # add one and start it
-        infrapack open               # the web console
+        infrapack open               # the console
+      The first command also adds the InfraPack app (Spotlight, Dock) and, on
+      macOS with the Command Line Tools, the InfraPack menu bar item.
     EOS
   end
 

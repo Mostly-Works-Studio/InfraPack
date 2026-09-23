@@ -2,9 +2,10 @@
 
 # InfraPack
 
-Local development infrastructure, one command. Install the techs your project
-needs (databases, brokers, caches…), each with a web UI and copy-ready
-connection strings, and turn them on and off from a terminal or a browser.
+Local development infrastructure, one command. Install the techs a project
+needs (databases, brokers, caches, queues, emulators…) from a catalog of 50+,
+each with a web UI and connection strings ready to copy, and switch them on
+and off from the terminal, the console, or the menu bar.
 
 The only thing a machine needs is **Docker** and **bash**. No Python, no Node,
 no package managers.
@@ -38,7 +39,7 @@ curl -fsSL https://raw.githubusercontent.com/Mostly-Works-Studio/infrapack/maste
 Either way, then:
 
 ```bash
-infrapack doctor          # checks Docker, ports, the console
+infrapack doctor          # checks Docker, ports, memory, the console
 infrapack open            # starts and opens the console
 ```
 
@@ -46,6 +47,12 @@ Docker is the one prerequisite: Docker Desktop, OrbStack or Colima on macOS,
 Docker Engine with the compose plugin on Linux. The installer tells you how to
 get it if it is missing. Update later with `infrapack update` (or
 `brew upgrade infrapack`).
+
+The first `infrapack` command also creates two small apps for you (the curl
+installer does it right away): **InfraPack**, the console in its own window,
+in Spotlight, Launchpad and the Dock on macOS and in the app menu on Linux;
+and, on macOS, **InfraPack Menu**, a menu bar item that toggles techs and
+opens their UIs. Both are built on your machine from the sources in `assets/`.
 
 From a checkout (for development): `export PATH="$PWD/bin:$PATH"` and
 `infrapack rebuild` once.
@@ -56,7 +63,8 @@ From a checkout (for development): `export PATH="$PWD/bin:$PATH"` and
 app dir (this checkout / brew libexec)     workspace: ~/.infrapack
 ├── bin/infrapack        the CLI (bash)     ├── .env            every setting
 ├── catalog/<tech>/      installable techs  ├── stacks/<tech>/  installed techs
-├── console/             web console        └── inbox/, agent.sh (macOS helper)
+├── console/             web console        ├── claims          which project uses what
+├── assets/              logo, app sources  └── agent.sh, inbox/ (macOS Docker helper)
 └── compose.yml          console + network
 ```
 
@@ -85,40 +93,23 @@ Conventions: the core service is named after the tech, its web UI is
 
 ## The console
 
-`infrapack open` opens it from any terminal. It is bound to loopback only,
-because it controls Docker, and lives at <http://localhost:1717>
-(`http://infrapack.localhost:1717` works too). You never have to type that: the first `infrapack` command after installing
-creates two small apps for you (the curl installer does it right away):
+<http://localhost:1717>, bound to loopback only because it controls Docker.
+`infrapack open` opens it from a terminal, the **InfraPack** app opens it in
+its own window, and `infrapack console port N` moves it if 1717 is taken.
 
-- **InfraPack** launcher: in Spotlight, Launchpad and the Dock on macOS, in the
-  app menu on Linux. It opens the console in your default browser, whatever
-  it is, Arc included. On Linux, right-click it for quick actions: open the
-  console, start or stop every tech, or any single installed tech.
-- **InfraPack Menu** (macOS): an icon in the menu bar listing the installed
-  techs with on/off toggles and "Open" entries for their UIs. It is compiled
-  on your machine from `assets/menubar/InfraPackMenu.swift` with the Xcode
-  Command Line Tools compiler, so nothing unsigned is downloaded.
-  `infrapack menubar install --login` makes it start at login.
-
-`infrapack app uninstall` and `infrapack menubar uninstall` remove them for
-good. Browsers that install web apps (Safari's **Add to Dock**, Chrome and
-Edge's **Install app**) also work, since the console ships a web-app manifest.
-`infrapack console` tells you where it is; `infrapack console port N` moves
-it, and `infrapack console alias` puts it on port 80 (<http://localhost>)
-when that port is free on your machine.
-
-- **Installed** — every service with state, health, live CPU/memory, links and
-  credentials (masked until revealed, copy buttons everywhere); per-service
-  start/stop/restart toggles, per-tech start/stop/uninstall
-- **Catalog** — install a tech with its ports pre-filled and editable, or
-  define a **custom** tech from any image (ports, volume, command, env, an
-  optional UI image)
-- **Settings** — edit ports, credentials and image tags; save recreates only
-  the affected containers and runs the tech's `post-settings` hook (MySQL
-  applies credential changes to the running server and re-points CloudBeaver)
-- **Logs** — the last lines of any container
-- **Docker** — engine, VM size, usage and headroom; restart Docker Desktop
-  from here on macOS once `infrapack agent install` has been run
+- **Installed**: every tech with state, health, live CPU and memory, links and
+  credentials (masked until revealed, copy buttons everywhere); a switch per
+  service, start/stop/uninstall per tech
+- **Catalog**: 50+ techs grouped by category, searchable, with ports and
+  memory footprint on each card; install with the ports pre-filled and
+  editable, or define a **custom** tech from any image or a pasted compose
+  file, with a preview of what will be written
+- **Settings**: ports, credentials and image tags; saving recreates only the
+  affected services and runs the tech's `post-settings` hook (MySQL applies
+  credential changes to the running server and re-points CloudBeaver)
+- **Logs**: the last lines of any container
+- **Docker**: engine and VM, live usage, whether the VM is sized for what is
+  installed with a one-click resize, Docker restart, and export/import
 
 Keyboard: **⌘S / Ctrl+S** saves, **Esc** discards or re-hides secrets,
 **Enter** submits the install form.
@@ -126,23 +117,44 @@ Keyboard: **⌘S / Ctrl+S** saves, **Esc** discards or re-hides secrets,
 The console runs in a container and drives the same `infrapack` CLI you use,
 so the two can never disagree.
 
+### The menu bar (macOS)
+
+**InfraPack Menu** lists the installed techs with a switch each and an
+"Open …" entry for every web UI, plus Start all, Stop all and Open console.
+It updates live while open and never closes when you flip a switch. It is
+compiled on your machine from `assets/menubar/InfraPackMenu.swift` with the
+Xcode Command Line Tools compiler, so nothing unsigned is downloaded.
+`infrapack menubar install --login` makes it start at login;
+`infrapack menubar uninstall` removes it for good. On Linux, right-click the
+InfraPack launcher for the same actions.
+
 ## Commands
 
 ```
 Everyday
-  up [tech...]         start installed techs (default: all) and the console
-  down [tech...]       stop (data kept); no args = all techs, "all" = console too
-  restart [tech...]    stop + start
-  status               what is running, health, ports
-  urls                 connection strings and UI links
-  logs [service]       tail logs
-  open                 open the web console
+  up [tech...]         start techs (default: every installed one) and the console
+  down [tech...]       stop them, keeping data (no args: all techs; "all": the console too)
+  restart [tech...]    stop, then start
+  status               what is running, with health, ports and which project uses what
+  urls                 connection strings and UI links for what is running
+  logs [service]       follow logs
+  open                 open the console
 
 Techs
-  catalog              what can be installed
-  install <name>       add a tech        infrapack install redis REDIS_PORT=6380
-  uninstall <name>     remove it (--purge deletes its data too)
-  <tech> <command>     tech helpers      infrapack kafka topics · infrapack mysql shell
+  catalog              everything that can be installed, with ports and memory footprint
+  install <name>       add a tech from the catalog and start it   infrapack install redis REDIS_PORT=6380
+  uninstall <name>     remove it; add --purge to delete its data as well
+  add <name> ...       define a custom tech from any image, or import a compose file
+                       infrapack add mq --image nats:2-alpine --port 4222 --volume /data
+                       infrapack add shop --compose ./docker-compose.yml
+  <tech> <command>     helpers a tech ships                       infrapack kafka topics · infrapack mysql shell
+  contribute <name>    package a custom tech as a catalog entry, ready for a pull request
+
+Projects & teams
+  init [tech...]       write infrapack.yaml for this repo (default: what is running now);
+                       'infrapack up' inside the repo then starts exactly those
+  export [file]        one JSON file with every installed tech and its settings
+  import <file|url>    recreate it on another machine              infrapack import team.json
 
 Settings
   config               show settings (secrets masked)
@@ -150,15 +162,22 @@ Settings
   reset [tech...]      stop and DELETE the data volumes
   pull [tech...]       refresh images
 
-System
-  doctor               check Docker, ports, the console
+Machine
+  doctor               check Docker, ports, memory and the console
+  docker memory [auto|N]  size the Docker VM for the installed techs (restarts Docker)
+  console              where the console is; "console port N" moves it
+  app, menubar         the InfraPack app and menu bar item (created on first run; "uninstall" removes them)
+  agent <sub>          macOS helper that lets the console restart or resize Docker Desktop
+  exec <service> [cmd] a shell inside a container
   update               update InfraPack itself
-  agent <sub>          install|uninstall|status — Docker Desktop restart helper (macOS)
-  exec <service> [cmd] shell into a container
-  rebuild              rebuild the console image from source
   version
 
-Flags:  --no-ui   start/stop core services only, without their web UIs
+Flags
+  --no-ui              start or stop core services only, without their web UIs
+  -y, --yes            do not ask before installing what a manifest needs
+  --with-secrets       include passwords and tokens in an export
+  --force              import over already-installed techs, or overwrite infrapack.yaml
+  --dry-run            show what "add" or "docker memory" would do
 ```
 
 ## Catalog
@@ -323,8 +342,8 @@ headroom, rounded to 512 MiB, at least 2 GiB and at most 75% of the machine.
 `install` prints a note when a new tech pushes it above the current cap;
 nothing resizes on its own, because a resize restarts Docker and stops
 whatever is running. The console's Docker page shows the same numbers and a
-resize button (macOS, with the host agent installed). OrbStack sizes itself,
-and on Linux containers use host memory directly.
+resize button on macOS. OrbStack sizes itself, and on Linux containers use
+host memory directly.
 
 ## Start-up behaviour
 
