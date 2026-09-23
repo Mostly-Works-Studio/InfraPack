@@ -1036,6 +1036,11 @@ cmd_app() {
   <key>CFBundleIconFile</key><string>$APP_NAME</string>
   <key>LSMinimumSystemVersion</key><string>12.0</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>CFBundleURLTypes</key>
+  <array><dict>
+    <key>CFBundleURLName</key><string>InfraPack console page</string>
+    <key>CFBundleURLSchemes</key><array><string>infrapack</string></array>
+  </dict></array>
 </dict></plist>
 EOF
           if command -v swiftc >/dev/null; then
@@ -1075,6 +1080,7 @@ EOF
           rm -rf "$final"; mkdir -p "$(dirname "$final")"
           mv "$app" "$final" || die "could not place $final"
           app="$final"
+          /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$app" >/dev/null 2>&1 || true
           touch "$app"    # nudge Finder / Launch Services to pick up the icon
           ok "$app installed — find \"$APP_NAME\" in Spotlight or Launchpad, drag it to the Dock"
           if [[ -f "$INFRAPACK_HOME/app-build.log" && ! -s "$INFRAPACK_HOME/app-build.log" ]] || command -v swiftc >/dev/null; then
@@ -1294,11 +1300,18 @@ first_run_extras() {
 
 # ------------------------------------------------------------------- misc --
 cmd_open() {
-  local url; url="$(console_url)"
+  local page="${1:-services}" url; url="$(console_url)"
+  case "$page" in services|catalog|settings|logs|docker) ;; *) die "usage: infrapack open [catalog|settings|logs|docker]" ;; esac
   running console || cmd_up >/dev/null
   case "$OS" in
-    Darwin) open "$url" ;;
-    *)      command -v xdg-open >/dev/null && xdg-open "$url" >/dev/null 2>&1 || echo "$url" ;;
+    Darwin)
+      # the InfraPack app (its own window) when it is installed, via its URL scheme; the browser otherwise
+      if [[ -x "$HOME/Applications/$APP_NAME.app/Contents/MacOS/$APP_NAME" ]] && grep -q 'studio.mostlyworks.infrapack' "$HOME/Applications/$APP_NAME.app/Contents/Info.plist" 2>/dev/null; then
+        open "infrapack://$page"
+      else
+        open "$url$( [[ "$page" != services ]] && echo "#$page" )"
+      fi ;;
+    *)      command -v xdg-open >/dev/null && xdg-open "$url$( [[ "$page" != services ]] && echo "#$page" )" >/dev/null 2>&1 || echo "$url" ;;
   esac
 }
 
@@ -1574,7 +1587,7 @@ ${B}Everyday${N}
   status               what is running, with health, ports and which project uses what
   urls                 connection strings and UI links for what is running
   logs [service]       follow logs
-  open                 open the console
+  open [page]          open the console (catalog, settings, logs, docker)
 
 ${B}Techs${N}
   catalog              everything that can be installed, with ports and memory footprint

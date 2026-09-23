@@ -289,22 +289,21 @@ final class InfraPackMenu: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     // ---------------------------------------------------------- actions --
-    @objc private func openConsole() {
-        // prefer the InfraPack desktop app (the console in its own window) when installed
-        let app = NSHomeDirectory() + "/Applications/InfraPack.app"
-        if FileManager.default.fileExists(atPath: app + "/Contents/MacOS/InfraPack"),
-           let plist = NSDictionary(contentsOfFile: app + "/Contents/Info.plist"),
-           (plist["CFBundleIdentifier"] as? String)?.hasPrefix("studio.mostlyworks.infrapack") == true {
-            NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: app), configuration: NSWorkspace.OpenConfiguration()) { _, _ in }
-            return
-        }
-        NSWorkspace.shared.open(consoleURL)
-    }
+    @objc private func openConsole() { openConsolePage("services") }
     @objc private func openCatalog() { openConsolePage("catalog") }
     @objc private func openDockerPage() { openConsolePage("docker") }
+    private var desktopAppInstalled: Bool {
+        let app = NSHomeDirectory() + "/Applications/InfraPack.app"
+        guard FileManager.default.fileExists(atPath: app + "/Contents/MacOS/InfraPack"),
+              let plist = NSDictionary(contentsOfFile: app + "/Contents/Info.plist") else { return false }
+        return (plist["CFBundleIdentifier"] as? String)?.hasPrefix("studio.mostlyworks.infrapack") == true
+    }
     private func openConsolePage(_ page: String) {
-        // the desktop app shows whatever the console last showed; a page deep link needs the URL, so use the browser
-        NSWorkspace.shared.open(consoleURL.appendingPathComponent("").absoluteURL.appending(fragment: page))
+        if desktopAppInstalled, let url = URL(string: "infrapack://\(page)") {
+            NSWorkspace.shared.open(url)          // launches or activates the InfraPack app on that page
+        } else {
+            NSWorkspace.shared.open(consoleURL.appending(fragment: page))
+        }
     }
     @objc private func openLink(_ sender: NSMenuItem) {
         if let ref = sender.representedObject as? [String: String], let s = ref["url"], let url = URL(string: s) { NSWorkspace.shared.open(url) }

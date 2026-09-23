@@ -11,6 +11,7 @@ final class InfraPackApp: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavig
     private var window: NSWindow!
     private var webView: WKWebView!
     private var retries = 0
+    private var pendingPage: String?           // from an infrapack://<page> URL received before the console loaded
 
     private var home: String {
         ProcessInfo.processInfo.environment["INFRAPACK_HOME"] ?? (NSHomeDirectory() + "/.infrapack")
@@ -45,6 +46,28 @@ final class InfraPackApp: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavig
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         load()
+    }
+
+    // infrapack://catalog, infrapack://docker … (from the menu bar app, the CLI, or a link)
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard let url = urls.first(where: { $0.scheme == "infrapack" }) else { return }
+        let page = url.host ?? url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        show(page: page)
+    }
+    private func show(page: String) {
+        let allowed = ["services", "catalog", "settings", "logs", "docker"]
+        guard allowed.contains(page) else { return }
+        if webView.url?.host == consoleURL.host, webView.url?.port == consoleURL.port {
+            webView.evaluateJavaScript("location.hash = '#\(page)'; if (typeof setView === 'function') setView('\(page)');", completionHandler: nil)
+        } else {
+            pendingPage = page
+            load()
+        }
+    }
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        if let page = pendingPage { pendingPage = nil; show(page: page) }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
