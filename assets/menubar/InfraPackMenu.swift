@@ -9,13 +9,40 @@
 import Cocoa
 import Foundation
 
-/// One tech: name, a small status line, and a switch. Lives inside a menu item as
-/// a custom view, which is what lets the menu stay open when the switch is used.
+/// A pill toggle drawn by hand: NSSwitch inside a menu looks inactive (menus are
+/// never the key window), so it would never show its filled "on" colour.
+final class PillToggle: NSView {
+    var isOn = false { didSet { needsDisplay = true } }
+    var isEnabled = true { didSet { alphaValue = isEnabled ? 1 : 0.4 } }
+    var onTap: (() -> Void)?
+
+    override func draw(_ dirtyRect: NSRect) {
+        let track = bounds.insetBy(dx: 1, dy: 1)
+        let radius = track.height / 2
+        let fill = isOn ? NSColor.controlAccentColor : NSColor.quaternaryLabelColor
+        fill.setFill()
+        NSBezierPath(roundedRect: track, xRadius: radius, yRadius: radius).fill()
+        let knobD = track.height - 4
+        let knobX = isOn ? track.maxX - knobD - 2 : track.minX + 2
+        let knob = NSRect(x: knobX, y: track.minY + 2, width: knobD, height: knobD)
+        NSColor.white.setFill()
+        let path = NSBezierPath(ovalIn: knob)
+        NSGraphicsContext.current?.saveGraphicsState()
+        let shadow = NSShadow(); shadow.shadowBlurRadius = 1.5; shadow.shadowOffset = NSSize(width: 0, height: -0.5)
+        shadow.shadowColor = NSColor.black.withAlphaComponent(0.25); shadow.set()
+        path.fill()
+        NSGraphicsContext.current?.restoreGraphicsState()
+    }
+    override func mouseDown(with event: NSEvent) { if isEnabled { onTap?() } }
+}
+
+/// One tech: name, a small status line, and a toggle. Lives inside a menu item as
+/// a custom view, which is what lets the menu stay open when the toggle is used.
 final class StackRow: NSView {
     let name: String
     private let title = NSTextField(labelWithString: "")
     private let status = NSTextField(labelWithString: "")
-    private let toggle = NSSwitch()
+    private let toggle = PillToggle()
     var onToggle: ((String) -> Void)?
 
     init(name: String, label: String) {
@@ -27,19 +54,18 @@ final class StackRow: NSView {
         status.font = NSFont.systemFont(ofSize: 10.5)
         status.textColor = .secondaryLabelColor
         status.frame = NSRect(x: 14, y: 2, width: 220, height: 13)
-        toggle.controlSize = .small
-        toggle.frame = NSRect(x: 300 - 14 - 32, y: 7, width: 32, height: 20)
-        toggle.target = self
-        toggle.action = #selector(flipped)
+        toggle.frame = NSRect(x: 300 - 14 - 34, y: 7, width: 34, height: 20)
+        toggle.onTap = { [weak self] in
+            guard let self = self else { return }
+            self.toggle.isOn.toggle()             // flip right away; the console confirms within a refresh
+            self.onToggle?(self.name)
+        }
         addSubview(title); addSubview(status); addSubview(toggle)
     }
     required init?(coder: NSCoder) { fatalError() }
 
-    @objc private func flipped() { onToggle?(name) }
-
     func apply(on: Bool, mixed: Bool, statusText: String, busy: Bool) {
-        let want: NSControl.StateValue = on ? .on : .off
-        if toggle.state != want { toggle.animator().state = want }
+        if !busy && toggle.isOn != on { toggle.isOn = on }
         toggle.isEnabled = !busy
         status.stringValue = statusText
         status.textColor = busy ? .tertiaryLabelColor : (mixed ? .systemOrange : .secondaryLabelColor)
