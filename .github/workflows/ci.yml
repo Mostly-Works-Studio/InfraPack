@@ -5,7 +5,7 @@ name: CI
 # the same run tags it, builds the console image, publishes the GitHub
 # release and updates the Homebrew tap. Releasing is therefore:
 #
-#   scripts/release.sh 0.2.0   # bumps VERSION and commits
+#   scripts/release.sh 0.2.1   # bumps VERSION and commits
 #   git push
 #
 # Pull requests run lint + smoke only. The weekly run re-boots the catalog to

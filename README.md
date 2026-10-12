@@ -367,7 +367,7 @@ it. `VERSION` is the single source of truth for both.
 ### Releasing
 
 ```bash
-scripts/release.sh 0.2.0        # bumps VERSION and commits
+scripts/release.sh 0.2.1        # bumps VERSION and commits
 git push
 ```
 

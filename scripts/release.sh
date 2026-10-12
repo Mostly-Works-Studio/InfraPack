@@ -4,10 +4,10 @@
 # vX.Y.Z, builds the console image, publishes the GitHub release and updates
 # the Homebrew tap. No manual tagging.
 #
-#   scripts/release.sh 0.2.0            # bump + commit
+#   scripts/release.sh 0.2.1            # bump + commit
 #   git push                            # CI → release
 #
-#   scripts/release.sh formula 0.2.0    # print the tap formula for a tag that
+#   scripts/release.sh formula 0.2.1    # print the tap formula for a tag that
 #                                       # already exists on GitHub (sha256 filled in)
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
