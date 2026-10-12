@@ -1,0 +1,54 @@
+# SeaweedFS — S3-compatible object storage (master, volume, filer and the S3
+# gateway in one process) plus the SeaweedFS Admin UI. Managed by InfraPack.
+x-restart: &restart ${INFRA_RESTART:-no}
+
+services:
+  seaweedfs:
+    image: chrislusf/seaweedfs:${SEAWEEDFS_VERSION:-4.48}
+    container_name: infrapack-seaweedfs
+    restart: *restart
+    # -ip is the name other containers (and the Admin UI) reach the master by
+    command: server -s3 -dir=/data -ip=seaweedfs -ip.bind=0.0.0.0 -master.volumeSizeLimitMB=1024
+    environment:
+      # setting both keys switches the S3 gateway from allow-all to authenticated
+      AWS_ACCESS_KEY_ID: ${SEAWEEDFS_ACCESS_KEY:-seaweedfs}
+      AWS_SECRET_ACCESS_KEY: ${SEAWEEDFS_SECRET_KEY:-seaweedfs}
+    ports:
+      - "${SEAWEEDFS_PORT:-8333}:8333"
+    volumes:
+      - seaweedfs-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9333/cluster/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks: [infra]
+
+  seaweedfs-ui:
+    image: chrislusf/seaweedfs:${SEAWEEDFS_VERSION:-4.48}
+    container_name: infrapack-seaweedfs-ui
+    restart: *restart
+    command: admin -master=seaweedfs:9333 -port=23646 -dataDir=/data
+    environment:
+      # a password is what makes the Admin UI listen beyond loopback
+      WEED_ADMIN_USER: ${SEAWEEDFS_UI_USER:-admin}
+      WEED_ADMIN_PASSWORD: ${SEAWEEDFS_UI_PASSWORD:-admin}
+    ports:
+      - "${SEAWEEDFS_UI_PORT:-8098}:23646"
+    volumes:
+      - seaweedfs-ui-data:/data
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:23646/login"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks: [infra]
+
+volumes:
+  seaweedfs-data:
+  seaweedfs-ui-data:

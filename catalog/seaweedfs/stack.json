@@ -1,0 +1,110 @@
+{
+  "stack": "seaweedfs",
+  "label": "SeaweedFS",
+  "blurb": "S3-compatible object storage (MinIO replacement) · buckets, keys and a file browser in the Admin UI",
+  "category": "storage",
+  "memory_mb": 250,
+  "services": [
+    {
+      "name": "seaweedfs",
+      "label": "SeaweedFS",
+      "desc": "S3 API on :{SEAWEEDFS_PORT} · path-style addressing · any region",
+      "facts": [
+        {
+          "label": "S3 endpoint",
+          "value": "http://localhost:{SEAWEEDFS_PORT}",
+          "copy": true
+        },
+        {
+          "label": "In-network",
+          "value": "http://seaweedfs:8333",
+          "copy": true
+        },
+        {
+          "label": "Access key",
+          "value": "{SEAWEEDFS_ACCESS_KEY}",
+          "copy": true
+        },
+        {
+          "label": "Secret key",
+          "value": "{SEAWEEDFS_SECRET_KEY}",
+          "copy": true,
+          "secret": true
+        },
+        {
+          "label": "Region",
+          "value": "us-east-1",
+          "copy": true
+        },
+        {
+          "label": "SDK note",
+          "value": "use path-style addressing (force_path_style / s3ForcePathStyle)"
+        }
+      ]
+    },
+    {
+      "name": "seaweedfs-ui",
+      "label": "Admin UI",
+      "ui": true,
+      "desc": "Buckets, S3 users and keys, file browser, cluster status",
+      "link": "http://localhost:{SEAWEEDFS_UI_PORT}",
+      "facts": [
+        {
+          "label": "User",
+          "value": "{SEAWEEDFS_UI_USER}",
+          "copy": true
+        },
+        {
+          "label": "Password",
+          "value": "{SEAWEEDFS_UI_PASSWORD}",
+          "copy": true,
+          "secret": true
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "key": "SEAWEEDFS_PORT",
+      "label": "S3 port",
+      "type": "port",
+      "group": "SeaweedFS"
+    },
+    {
+      "key": "SEAWEEDFS_ACCESS_KEY",
+      "label": "Access key",
+      "type": "text",
+      "group": "SeaweedFS"
+    },
+    {
+      "key": "SEAWEEDFS_SECRET_KEY",
+      "label": "Secret key",
+      "type": "secret",
+      "group": "SeaweedFS"
+    },
+    {
+      "key": "SEAWEEDFS_VERSION",
+      "label": "Image tag",
+      "type": "text",
+      "group": "SeaweedFS"
+    },
+    {
+      "key": "SEAWEEDFS_UI_PORT",
+      "label": "Port",
+      "type": "port",
+      "group": "Admin UI"
+    },
+    {
+      "key": "SEAWEEDFS_UI_USER",
+      "label": "User",
+      "type": "text",
+      "group": "Admin UI"
+    },
+    {
+      "key": "SEAWEEDFS_UI_PASSWORD",
+      "label": "Password",
+      "type": "secret",
+      "group": "Admin UI"
+    }
+  ]
+}

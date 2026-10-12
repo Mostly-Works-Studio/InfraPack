@@ -212,7 +212,7 @@ Flags
 | Search | `meilisearch` | Meilisearch | main 7700 |
 | Search | `opensearch` | OpenSearch, OpenSearch Dashboards | main 9201 · ui 5602 |
 | Search | `typesense` | Typesense | main 8108 |
-| Object storage | `minio` | MinIO | main 9000 · ui 9001 |
+| Object storage | `seaweedfs` | SeaweedFS, Admin UI | main 8333 · ui 8098 |
 | Cloud emulators | `azurite` | Azurite | blob 10000 · queue 10001 · table 10002 |
 | Cloud emulators | `dynamodb` | DynamoDB Local, dynamodb-admin | main 8000 · ui 8001 |
 | Cloud emulators | `firestore` | Firestore emulator | main 8090 |
